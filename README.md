@@ -25,7 +25,7 @@ No PC power management, remote shell, broker, or third-party bridge is included.
 
 Samsung 계정 로그인 → 허브 선택 → Enroll → Available Drivers에서 **ST Windows Media Control** 설치. 사용자는 SmartThings CLI를 설치할 필요가 없습니다.
 
-Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; .NET 8 SDK or newer to build; a supported SmartThings Edge hub on the LAN; a signed-in Windows user. Use a currently supported Windows/.NET environment.
+Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; a supported SmartThings Edge hub on the LAN; a signed-in Windows user. Building from source requires the SDK pinned in `global.json`; the standalone EXE includes its runtime. Use a currently supported Windows/.NET environment.
 
 1. Run the standalone Windows EXE. Select the detected PC address, choose whether to start at sign-in, and approve the firewall prompt. Developers can [build the EXE](windows-agent/README.md).
 2. [Enroll and install the matching Edge driver](edge-driver/README.md), then enter the PC address and 10-digit pairing code.

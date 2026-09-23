@@ -29,7 +29,7 @@ using a multi-file build or existing script-based installations.
 
 ## Build
 
-From the repository root, with a .NET 8 or newer SDK:
+From the repository root, with the SDK pinned in `global.json` (9.0.318):
 
 ```powershell
 dotnet publish windows-agent/STMediaBridge.Agent.csproj -c Release -r win-x64 --self-contained true -o artifacts/windows-x64
