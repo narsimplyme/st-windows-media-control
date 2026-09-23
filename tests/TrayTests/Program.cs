@@ -97,6 +97,18 @@ internal static class Program
         bitmap.Save(output);
         Check(fields.All(f => f.Width >= 250), "pairing values have readable width");
         Console.WriteLine("Preview: " + output);
+        form.Show();
+        NativeShowWindow(form.Handle, 0);
+        Check(!NativeIsWindowVisible(form.Handle), "reproduce natively hidden pairing window");
+        TrayContext.Present(form);
+        Check(NativeIsWindowVisible(form.Handle), "tray presentation restores a natively hidden window");
+        form.WindowState = FormWindowState.Minimized;
+        TrayContext.Present(form);
+        Check(form.WindowState == FormWindowState.Normal && NativeIsWindowVisible(form.Handle), "tray presentation restores a minimized window");
+        form.Location = new Point(-30000, -30000);
+        TrayContext.Present(form);
+        Check(Screen.AllScreens.Any(s => s.WorkingArea.IntersectsWith(form.Bounds)), "tray presentation brings off-screen window back");
+        form.Hide();
         var instructions = controls.OfType<Label>().Single(l => l.Text.Contains("35D95694"));
         Check(instructions.Text.Contains("D3F16021") && instructions.Text.Contains("5DB293C7") && instructions.Text.Contains("899DAA59"), "pairing shows all 128 fingerprint bits for comparison");
         Check(instructions.Bottom <= form.ClientSize.Height, "certificate comparison instructions fit inside dialog");
@@ -127,6 +139,10 @@ internal static class Program
         if (!value) throw new Exception(description);
         Console.WriteLine("PASS " + description);
     }
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint="ShowWindow")]
+    private static extern bool NativeShowWindow(IntPtr handle, int command);
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint="IsWindowVisible")]
+    private static extern bool NativeIsWindowVisible(IntPtr handle);
     private sealed class Lifetime : IHostApplicationLifetime, IDisposable
     {
         private readonly CancellationTokenSource started = new(), stopping = new(), stopped = new();

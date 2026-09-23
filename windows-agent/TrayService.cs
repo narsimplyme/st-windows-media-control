@@ -172,9 +172,23 @@ internal sealed class TrayContext : ApplicationContext
     private void ShowPairing(AgentConfig config, StateStore state, PairingSession session)
     {
         if (pairing is null || pairing.IsDisposed) pairing = new PairingForm(config, state, icon, session, certificate);
-        if (!pairing.Visible) pairing.Show();
-        if (pairing.WindowState == FormWindowState.Minimized) pairing.WindowState = FormWindowState.Normal;
-        pairing.Activate();
+        Present(pairing);
+    }
+    internal static void Present(Form window)
+    {
+        if (!window.Visible) window.Show();
+        if (window.WindowState == FormWindowState.Minimized) window.WindowState = FormWindowState.Normal;
+        // STARTUPINFO SW_HIDE can hide the initial Show despite WinForms believing
+        // the form is visible. An explicit tray action must restore the native HWND.
+        ShowWindow(window.Handle, 9); // SW_RESTORE
+        if (!Screen.AllScreens.Any(screen => screen.WorkingArea.IntersectsWith(window.Bounds)))
+        {
+            var area = Screen.FromPoint(Cursor.Position).WorkingArea;
+            window.Location = new Point(area.Left + Math.Max(0, (area.Width - window.Width) / 2),
+                area.Top + Math.Max(0, (area.Height - window.Height) / 2));
+        }
+        window.BringToFront();
+        window.Activate();
     }
     public void RequestClose()
     {
@@ -221,6 +235,8 @@ internal sealed class TrayContext : ApplicationContext
     }
     [DllImport("user32.dll")]
     private static extern bool DestroyIcon(IntPtr handle);
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr handle, int command);
 }
 
 internal sealed class PairingForm : Form
