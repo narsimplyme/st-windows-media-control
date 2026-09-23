@@ -89,6 +89,13 @@ internal static class Program
         controls.OfType<Button>().Single(b => b.Text is "New code" or "새 코드 만들기").PerformClick();
         Check(code.Text != oldCode && pairingSession.Exchange(oldCode) == 401 && pairingSession.Exchange(code.Text) == 200,
             "new-code button updates displayed code and revokes old code");
+        Check(!pairingSession.IsPaired, "code exchange alone does not report completed pairing");
+        pairingSession.ConfirmAuthenticatedHub();
+        var uiDeadline = DateTime.UtcNow.AddSeconds(3);
+        while (!controls.OfType<Label>().Any(l => l.Text.Contains("SmartThings authenticated") || l.Text.Contains("SmartThings 인증 연결")) && DateTime.UtcNow < uiDeadline)
+        { Application.DoEvents(); Thread.Sleep(20); }
+        Check(controls.OfType<Label>().Any(l => l.Text.Contains("SmartThings authenticated") || l.Text.Contains("SmartThings 인증 연결")),
+            "authenticated hub updates pairing completion without reopening window");
         using var bitmap = new Bitmap(form.Width, form.Height);
         form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
         form.Hide();

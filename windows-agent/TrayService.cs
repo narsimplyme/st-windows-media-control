@@ -293,6 +293,13 @@ internal sealed class PairingForm : Form
             : TrayContext.T("실행 중 · 오디오 출력 없음", "Running · no audio output");
         void UpdateExpiry()
         {
+            if (session.IsPaired)
+            {
+                expiry.Text = TrayContext.T("페어링 완료 · 코드 재입력 불필요", "Paired · no need to re-enter the code");
+                feedback.Text = TrayContext.T("페어링 완료 · SmartThings 인증 연결 확인됨", "Pairing complete · SmartThings authenticated");
+                feedback.ForeColor = Color.ForestGreen;
+                return;
+            }
             var remaining = session.Remaining;
             expiry.Text = remaining > TimeSpan.Zero
                 ? TrayContext.T("코드 유효 시간: ", "Code expires in: ") + remaining.ToString(@"mm\:ss")

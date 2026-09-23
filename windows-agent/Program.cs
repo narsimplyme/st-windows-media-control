@@ -111,6 +111,11 @@ app.Use(async (ctx, next) =>
     var supplied = Encoding.UTF8.GetBytes(ctx.Request.Headers.Authorization.ToString());
     if (!CryptographicOperations.FixedTimeEquals(expected, supplied))
     { ctx.Response.StatusCode = 401; return; }
+    // A successful authenticated state read proves the hub received and uses its credentials.
+    // Public certificate discovery and code submission alone are not completion.
+    if (remote.ToString() == allowedHub && HttpMethods.IsGet(ctx.Request.Method)
+        && (ctx.Request.Path == "/v1/state" || ctx.Request.Path == "/v1/events"))
+        pairingSession.ConfirmAuthenticatedHub();
     try { await next(ctx); }
     catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested || app.Lifetime.ApplicationStopping.IsCancellationRequested) { }
 });

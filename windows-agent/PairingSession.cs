@@ -13,6 +13,9 @@ public sealed class PairingSession
     private string? code;
     private DateTimeOffset expires, window;
     private int attempts;
+    private bool paired;
+    public bool IsPaired { get { lock (gate) return paired; } }
+    public void ConfirmAuthenticatedHub() { lock (gate) paired = true; }
     public PairingSession(TimeProvider? clock = null) => this.clock = clock ?? TimeProvider.System;
 
     public string Generate()
