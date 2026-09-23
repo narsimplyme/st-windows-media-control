@@ -1,5 +1,18 @@
 # SmartThings Edge driver
 
+## Certificate approval
+
+The generic driver discovers the PC's public certificate without sending a
+pairing code or bearer token. Before the first authenticated connection, its
+music card displays two lines containing four certificate verification groups.
+Compare every group with the PC pairing window; only if all match, toggle **Confirm certificate** in device settings.
+After the verified exchange succeeds, trust and credentials survive hub restarts.
+A changed certificate is never accepted automatically. To recheck intentionally,
+toggle **Verify certificate again** in device settings and compare again.
+
+The HTTPS development build is currently validated on a separate test channel;
+the existing public Enroll channel is updated separately when the build is released.
+
 One manually paired LAN device uses one `main` component with `audioVolume`, `audioMute`, `mediaPlayback`, `mediaTrackControl`, `audioTrackData`, and `refresh`. There is no switch/power capability or separate manager device. Standard presentation is generated from the profile; no custom capability namespace or presentation publication is required.
 
 ## Install on your hub
@@ -52,7 +65,7 @@ Volume steps use the current Windows volume, not a potentially stale SmartThings
 
 After updating the driver, reopen the device screen and test the center button while music is playing. It should pause, then Play should resume. If nothing happens, capture logcat: `playback stop -> pause` or `playback pause -> pause` confirms the command arrived; a following HTTP 409 means Windows/the app rejected it. The standard card's icon itself is controlled by SmartThings and has not been verified to change to a pause symbol.
 
-`audioTrackData` carries title, artist, and the Windows app display name (app model ID when name resolution is unavailable). Empty fields are cleared when sessions disappear. Album title remains available; artwork is not supported. Windows statuses other than Playing/Paused map to SmartThings `stopped`; lack of a session also maps to stopped. An unavailable output endpoint makes the device offline and preserves its last known volume instead of inventing a zero reading.
+`audioTrackData` carries title, artist, and the Windows app display name (app model ID when name resolution is unavailable). Empty fields are cleared when sessions disappear. Album title remains available. Windows statuses other than Playing/Paused map to SmartThings `stopped`; lack of a session also maps to stopped. An unavailable output endpoint makes the device offline and preserves its last known volume instead of inventing a zero reading.
 
 Standard mobile-client layout and metadata visibility require device testing. You cannot assume the exact proposed Now Playing/button arrangement on every SmartThings app version.
 

@@ -63,3 +63,19 @@ preferences:
         monitor: Monitor / 모니터
         speaker: Speaker / 스피커
       default: monitor
+
+  - name: verifyCertificate
+    title: 인증서 다시 확인 / Verify certificate again
+    description: "인증서가 바뀌었을 때 이 스위치를 전환하세요. 다음 연결에서 확인값 비교를 다시 요청합니다. Toggle to compare the certificate again."
+    required: true
+    preferenceType: boolean
+    definition:
+      default: false
+
+  - name: approveCertificate
+    title: 인증서 일치 확인 / Confirm certificate
+    description: "PC와 음악 카드의 확인값 네 묶음이 모두 같을 때만 전환하세요. Toggle only after all four verification groups match."
+    required: true
+    preferenceType: boolean
+    definition:
+      default: false

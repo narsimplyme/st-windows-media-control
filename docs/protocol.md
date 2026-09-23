@@ -1,6 +1,6 @@
 # ST Windows Media Control LAN protocol v1
 
-HTTP/1.1 JSON over TCP. Default configurable port: **8765**. UTF-8 JSON, camelCase property names. All control/state endpoints require `Authorization: Bearer <32-hex-character-token>`. Token comparison is case-sensitive; copy it exactly. The `POST /v1/pair` code exchange is described below. Every response disables caching. No redirects, CORS, browser UI, or cloud callbacks.
+HTTP/1.1 JSON over TLS 1.2 or newer. Default configurable port: **8765**. UTF-8 JSON, camelCase property names. All control/state endpoints require `Authorization: Bearer <32-hex-character-token>`. Token comparison is case-sensitive. The `POST /v1/pair` code exchange is described below. Every response disables caching. No redirects, CORS, browser UI, or cloud callbacks.
 
 The token encodes 16 cryptographically random bytes (128 bits); the all-zero value is reserved for unpaired profile defaults and cannot authenticate a configured agent. The all-zero UUID is also invalid. Legacy 64-character tokens must be rotated using the rebuilt companion's `--rotate-token` option or migrated by the updated installer, then copied to SmartThings. There is no UI truncation or legacy-length fallback. The HTTP paths and snapshot format are unchanged.
 
@@ -8,6 +8,7 @@ The token encodes 16 cryptographically random bytes (128 bits); the all-zero val
 
 | Method/path | Purpose |
 | --- | --- |
+| `GET /v1/identity` | Public certificate only; no secret or control data |
 | `GET /v1/state` | Current complete snapshot, immediately |
 | `GET /v1/events?epoch=<epoch>&after=<revision>` | Return immediately if cursor differs, otherwise hold up to 20 seconds for a native state change |
 | `POST /v1/command` | Execute one allowlisted command; return acknowledgement, not speculative state |
@@ -77,9 +78,11 @@ The driver limits response bodies to 16 KB, validates identity/schema, does not 
 ## Security
 
 
-The generated token has 128 bits of randomness. The listener defaults to loopback; LAN binding requires an explicit IPv4 interface and configured hub IPv4. The application checks source address even if the firewall is accidentally broader, and the supplied firewall rule additionally limits port, program, interface, source and Private profile. Kestrel limits concurrent connections to 16 and request bodies to 1 KB. Every state/control endpoint authenticates before reading state or invoking an action.
+The generated token has 128 bits of randomness. First-run setup generates a per-PC RSA certificate and selects an explicit IPv4 interface. Its key and configuration files are protected by user/SYSTEM ACLs. Before a hub is paired, only same-subnet certificate discovery and pairing requests are accepted during an active pairing window. Successful code exchange saves the source hub address; later traffic is restricted to that hub or loopback. Kestrel limits concurrent connections to 16 and request bodies to 1 KB. Every state/control endpoint authenticates before reading state or invoking an action.
 
-HTTP bearer tokens do **not** protect against LAN sniffing or an active intermediary. An observer could steal and replay the token. Restrict deployment to a trusted network, never expose the port on the internet, and rotate the token if disclosed. Source-IP filtering alone is not authentication. No claims of TLS, message signing, replay resistance or protection from a compromised authorized hub are made.
+Only public-certificate discovery uses unverified TLS: a fixed GET path, no Authorization header, no body and no redirects. It yields an untrusted candidate. The driver computes SHA-256 over the whitespace-free base64 certificate body, displays the first 128 bits as four uppercase eight-hex-character groups, and waits for an explicit change of the certificate approval preference after comparison with the PC. All code exchanges, state and control traffic then use `verify=peer` with that certificate as the sole trust anchor. Candidate trust is not persisted until a verified exchange or authenticated state response succeeds. A previously saved certificate is never automatically replaced. This is human-verified initial trust; skipping the comparison defeats protection against an active first-pair intermediary. No public CA or shared private key is embedded. Source-IP filtering alone is not authentication. A compromised authorized hub can still use its credentials.
+
+The certificate lasts two years. Expiry or key loss fails closed; explicit certificate replacement and re-verification are required. Automatic renewal is not yet implemented. Legacy headless developer configurations may still use HTTP; normal GUI startup migrates them to TLS and the generic Edge client never falls back to HTTP.
 
 The installed configuration file is restricted to the installing Windows user and LocalSystem. The Edge driver stores the internal device ID/token in persistent device fields, not user-editable preferences. This is not a dedicated secret-management API. Neither component deliberately logs tokens. SmartThings SDK diagnostic logging may expose preferences; redact before sharing.
 
@@ -90,8 +93,8 @@ The API exposes only the listed audio/media operations. It cannot accept shell c
 The PC tray generates a random 10-digit decimal code (no leading zero), valid
 for ten minutes and kept in memory only. `POST /v1/pair` with JSON
 `{"code":"1234567890"}` exchanges a valid code for `{deviceId, token}`. The example
-is illustrative, not an actual code. This route accepts only the configured
-hub or loopback and does not require an existing bearer token. All responses
+is illustrative, not an actual code. This route accepts the configured hub,
+loopback, or a local-subnet peer during initial TLS enrollment; it does not require an existing bearer token. All responses
 are no-store. Five exchange attempts per minute are allowed globally; exhausted
 budgets return 429. Wrong, missing or expired codes return 401. Reissuing a code
 does not reset the attempt budget. Response retries within the validity window
@@ -102,6 +105,6 @@ entered code. Restart/icon changes reuse credentials without exchanging again;
 changing the address, port or code prevents reusing old credentials. Stale
 responses from superseded workers cannot replace saved credentials. Legacy
 UUID/token preferences, when present, are migrated into private persisted fields.
-The visible profile contains only PC address, port, pairing code and icon choice.
+The visible profile contains PC address, port, pairing code, icon choice and an explicit certificate re-verification toggle.
 
 Album artwork serving has been removed. The media snapshot retains the album title but no image URL. The Edge driver clears any previously published image URL on its first metadata update.

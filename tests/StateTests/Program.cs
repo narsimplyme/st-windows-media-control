@@ -91,8 +91,11 @@ Directory.CreateDirectory(tlsDirectory);
 try
 {
     var tlsConfig = Path.Combine(tlsDirectory, "agent.json");
-    AgentConfig.Create(tlsConfig);
-    TlsIdentity.Enable(tlsConfig);
+    TlsIdentity.Initialize(tlsConfig, "192.168.1.20");
+    Check(AgentConfig.Load(tlsConfig).BindAddress == "192.168.1.20" && AgentConfig.Load(tlsConfig).HubAddress == "", "first setup creates TLS configuration without manual hub ID");
+    try { TlsIdentity.Initialize(tlsConfig, "192.168.1.21"); throw new Exception("Overwrote existing config"); }
+    catch (IOException) { Check(true, "first setup never overwrites existing configuration"); }
+    Check(TlsIdentity.Fingerprint("-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----") == "35D95694 D3F16021 5DB293C7 899DAA59", "certificate fingerprint uses canonical base64 SHA256");
     Check(AgentConfig.Load(tlsConfig).TlsEnabled, "TLS mode persists in configuration");
     string thumbprint;
     using (var cert = TlsIdentity.Load(tlsConfig))

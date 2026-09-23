@@ -8,21 +8,47 @@ var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolde
 for (var i = 0; i < args.Length; i++)
     if (args[i] == "--config" && i + 1 < args.Length) configPath = Path.GetFullPath(args[++i]);
 AgentConfig config;
+var firstRun = false;
 try
 {
+    if (args.Contains("--configure-firewall")) { FirstRun.ConfigureFirewall(configPath); return; }
     if (args.Contains("--init")) { AgentConfig.Create(configPath); return; }
     if (args.Contains("--rotate-token")) { AgentConfig.RotateToken(configPath); return; }
     if (args.Contains("--enable-https")) { TlsIdentity.Enable(configPath); return; }
+    if (!args.Contains("--no-tray"))
+    {
+        if (!args.Contains("--config") && FirstRun.InstallPortable()) return;
+        if (!File.Exists(configPath))
+        {
+            if (!FirstRun.Configure(configPath)) return;
+            firstRun = true;
+        }
+    }
     config = AgentConfig.Load(configPath);
+    if (!args.Contains("--no-tray") && !config.TlsEnabled)
+    {
+        TlsIdentity.Enable(configPath);
+        config = AgentConfig.Load(configPath);
+        firstRun = true;
+    }
 }
-catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or CryptographicException or System.ComponentModel.Win32Exception)
 {
     using var logs = new FileLog(Path.Combine(Path.GetDirectoryName(configPath)!, "logs"));
     logs.CreateLogger("Startup").LogError("Configuration could not be loaded/created ({Type}). Check agent.json and setup instructions; legacy tokens require --rotate-token.", ex.GetType().Name);
     Environment.ExitCode = 1;
+    if (!args.Contains("--no-tray") && !args.Contains("--configure-firewall")) MessageBox.Show("Could not start. " + ex.Message, ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
     return;
 }
-bool showPairing = false;
+using var singleInstance = new Semaphore(1, 1, "Local\\STWMC-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(configPath.ToUpperInvariant())))[..24]);
+if (!singleInstance.WaitOne(0))
+{
+    if (!args.Contains("--no-tray")) MessageBox.Show(TrayContext.T("이미 실행 중입니다. 트레이 아이콘에서 페어링 정보를 여세요.", "Already running. Open pairing information from the tray."), ProductInfo.DisplayName);
+    return;
+}
+try
+{
+bool showPairing = firstRun || args.Contains("--pairing");
 while (true)
 {
 AgentConfig? replacement = null;
@@ -45,6 +71,8 @@ builder.WebHost.ConfigureKestrel(server =>
     server.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(5);
 });
 var pairingSession = new PairingSession();
+var allowedHub = config.HubAddress;
+var enrollmentGate = new object();
 var state = new StateStore(config.DeviceId);
 builder.Services.AddSingleton(state);
 builder.Services.AddSingleton<AudioController>();
@@ -55,7 +83,8 @@ if (!args.Contains("--no-tray"))
     builder.Services.AddSingleton<IHostedService>(sp => new TrayService(config, state,
         sp.GetRequiredService<IHostApplicationLifetime>(), sp.GetRequiredService<ILogger<TrayService>>(),
         regenerate: () => replacement = AgentConfig.RegenerateIdentity(configPath), showPairing: showPairing, session: pairingSession,
-        startup: new StartupSettings(Path.Combine(AppContext.BaseDirectory, "STMediaBridge.Agent.exe"), configPath)));
+        startup: new StartupSettings(FirstRun.Executable, configPath),
+        certificate: tlsIdentity?.ExportCertificatePem(), configureFirewall: () => FirstRun.RequestFirewall(configPath)));
 var app = builder.Build();
 // AgentConfig enforces the 32-hex-character contract. Compare the complete
 // credential in constant time; never truncate or normalize a supplied token.
@@ -64,8 +93,16 @@ app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.CacheControl = "no-store";
     var remote = ctx.Connection.RemoteIpAddress?.MapToIPv4();
-    if (remote is null || (!IPAddress.IsLoopback(remote) && remote.ToString() != config.HubAddress))
+    var enrollmentPath = ctx.Request.Path == "/v1/identity" || ctx.Request.Path == "/v1/pair";
+    var enrolling = config.TlsEnabled && allowedHub == "" && enrollmentPath && pairingSession.Remaining > TimeSpan.Zero
+        && remote is not null && FirstRun.IsLocalPeer(remote, config.BindAddress);
+    if (remote is null || (!IPAddress.IsLoopback(remote) && remote.ToString() != allowedHub && !enrolling))
     { ctx.Response.StatusCode = 403; return; }
+    if (ctx.Request.Path == "/v1/identity" && HttpMethods.IsGet(ctx.Request.Method) && tlsIdentity is not null)
+    {
+        await next(ctx);
+        return;
+    }
     if (ctx.Request.Path == "/v1/pair" && HttpMethods.IsPost(ctx.Request.Method))
     {
         await next(ctx);
@@ -77,6 +114,7 @@ app.Use(async (ctx, next) =>
     try { await next(ctx); }
     catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested || app.Lifetime.ApplicationStopping.IsCancellationRequested) { }
 });
+app.MapGet("/v1/identity", () => tlsIdentity is null ? Results.NotFound() : Results.Ok(new { certificate = tlsIdentity.ExportCertificatePem() }));
 app.MapPost("/v1/pair", async (HttpContext ctx) =>
 {
     JsonDocument body;
@@ -88,6 +126,19 @@ app.MapPost("/v1/pair", async (HttpContext ctx) =>
         var code = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("code", out var value)
             && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
         var status = pairingSession.Exchange(code);
+        if (status == 200 && config.TlsEnabled)
+        {
+            lock (enrollmentGate)
+            {
+                var remote = ctx.Connection.RemoteIpAddress!.MapToIPv4().ToString();
+                if (allowedHub != "" && allowedHub != remote) return Results.StatusCode(403);
+                if (allowedHub == "")
+                {
+                    AgentConfig.ReplacePrivate(configPath, AgentConfig.Load(configPath) with { HubAddress = remote });
+                    allowedHub = remote;
+                }
+            }
+        }
         return status == 200 ? Results.Ok(new { deviceId = config.DeviceId, token = config.Token }) : Results.StatusCode(status);
     }
 });
@@ -141,6 +192,16 @@ if (replacement is null) break;
 config = replacement;
 showPairing = true;
 }
+}
+catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or CryptographicException or InvalidDataException or InvalidOperationException)
+{
+    using var logs = new FileLog(Path.Combine(Path.GetDirectoryName(configPath)!, "logs"));
+    logs.CreateLogger("Startup").LogError("Host could not start ({Type}). Check the selected PC address and TLS identity.", ex.GetType().Name);
+    Environment.ExitCode = 1;
+    if (!args.Contains("--no-tray")) MessageBox.Show(TrayContext.T("시작할 수 없습니다. 선택한 PC 주소와 인증서 파일을 확인하세요.\n", "Could not start. Check the selected PC address and certificate files.\n") + ex.Message,
+        ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+}
+finally { singleInstance.Release(); }
 
 internal static class JsonValueExtensions
 {

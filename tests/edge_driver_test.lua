@@ -23,7 +23,7 @@ package.loaded["st.driver"] = function(_, definition)
 end
 local preferences = {pcAddress="192.168.1.20", pcPort=8765, token=string.rep("a",32), deviceId="12345678-1234-1234-1234-123456789abc"}
 local device = {id="test", preferences=preferences, events={}, device_network_id="st-mediabridge-manual-v1"}
-device.fields = {}
+device.fields = {tlsTrust={ip=preferences.pcAddress, port=preferences.pcPort, certificate="test-certificate"}}
 device.metadataRequests = 0
 function device:get_field(key) return self.fields[key] end
 function device:set_field(key, value) self.fields[key] = value end
@@ -156,3 +156,30 @@ local failing = spawned[#spawned]
 assert(step(failing) == "pair")
 assert(step(failing,{token="invalid"}) == "sleep", "invalid exchange response must not be persisted")
 print("PASS short-code exchange, persistence, command use and stale-response rejection")
+
+-- An untrusted certificate must never receive a pairing code or bearer token.
+device.fields.tlsTrust = nil
+package.loaded["client"].discover = function() return coroutine.yield("discover") end
+package.loaded["client"].fingerprint = function() return "11111111 22222222", "33333333 44444444" end
+captured.lifecycle_handlers.infoChanged(driver,device)
+local enrollment = spawned[#spawned]
+assert(step(enrollment) == "discover")
+assert(step(enrollment,"candidate-certificate") == "sleep")
+assert(device:get_field("tlsTrust") == nil, "candidate must not be persisted")
+assert(step(enrollment) == "sleep", "pairing must wait for comparison approval")
+captured.capability_handlers.mediaPlayback.pause(driver,device,{command="pause"})
+assert(step(enrollment) == "sleep", "pause cannot approve trust")
+captured.capability_handlers.mediaPlayback.play(driver,device,{command="play"})
+assert(step(enrollment) == "sleep", "play/automation cannot approve certificate trust")
+preferences.approveCertificate = true
+captured.lifecycle_handlers.infoChanged(driver,device)
+enrollment = spawned[#spawned]
+assert(device:get_field("tlsTrust") == nil, "approval alone must not persist unverified trust")
+assert(step(enrollment) == "pair", "dedicated approval permits verified exchange")
+assert(step(enrollment,{deviceId="12345678-1234-1234-1234-123456789abc",token=string.rep("d",32)}) == "request")
+assert(device:get_field("tlsTrust").certificate == "candidate-certificate")
+preferences.verifyCertificate = true
+captured.lifecycle_handlers.infoChanged(driver,device)
+assert(device:get_field("tlsTrust") == nil, "explicit reset clears trust")
+assert(step(spawned[#spawned]) == "discover")
+print("PASS certificate discovery, approval gate, persistence and explicit trust reset")

@@ -16,6 +16,12 @@ lua.execute((ROOT / "tests/edge_protocol_test.lua").read_text(encoding="utf-8"))
 lua.globals().TEST_ROOT = ROOT.as_posix()
 lua.execute((ROOT / "tests/edge_driver_test.lua").read_text(encoding="utf-8"))
 lua.execute((ROOT / "tests/edge_tls_client_test.lua").read_text(encoding="utf-8"))
+lua.execute('package.loaded["sha2"] = nil; load = nil')
+sha = lua.eval('require("sha2").sha256')
+import hashlib
+for data in ["", "abc", "a" * 1000, "YWJj"]:
+    assert sha(data) == hashlib.sha256(data.encode()).hexdigest()
+print("PASS SHA256 known vectors with Edge-style disabled dynamic loading")
 for path in (ROOT / "edge-driver").rglob("*.yml"):
     yaml.safe_load(path.read_text(encoding="utf-8"))
 profile = yaml.safe_load((ROOT / "edge-driver/profiles/media-bridge.yml").read_text(encoding="utf-8"))
@@ -26,6 +32,7 @@ print("PASS YAML and one-device media-only profile")
 preferences = {p["name"]: p for p in profile["preferences"]}
 defaults = {}
 for name, preference in preferences.items():
+    assert 3 <= len(preference["title"]) <= 36, f"Preference title length: {name}"
     definition = preference["definition"]
     assert "default" in definition, f"Missing explicit default: {name}"
     value = definition["default"]

@@ -33,16 +33,34 @@ local function emit(device, s, old)
 end
 
 local function configuration(device)
-  return protocol.configuration(device.preferences, device:get_field("pairingCredentials"))
+  local config = protocol.configuration(device.preferences, device:get_field("pairingCredentials"))
+  local trust = device:get_field("tlsTrust")
+  if config and type(trust) == "table" and trust.ip == config.ip and trust.port == config.port then
+    config.certificate = trust.certificate
+  end
+  return config
 end
 local function remember(device, config)
   device:set_field("pairingCredentials", {ip=config.ip, port=config.port, code=config.code,
     deviceId=config.id, token=config.token}, {persist=true})
+  if config.certificate then device:set_field("tlsTrust", {ip=config.ip, port=config.port, certificate=config.certificate}, {persist=true}) end
 end
 local function restart(_, device)
   creating = false
+  local candidate = workers[device.id] and workers[device.id].candidate
+  local approval = device.preferences.approveCertificate == true
+  local previousApproval = device:get_field("certificateApprovalSetting")
+  local approved = previousApproval ~= nil and previousApproval ~= approval and candidate
+  device:set_field("certificateApprovalSetting", approval, {persist=true})
+  local verify = device.preferences.verifyCertificate == true
+  local previousVerify = device:get_field("verifyCertificateSetting")
+  if previousVerify ~= nil and previousVerify ~= verify then device:set_field("tlsTrust", nil, {persist=true}) end
+  device:set_field("verifyCertificateSetting", verify, {persist=true})
   local config = configuration(device)
   if config and config.token then remember(device, config) end
+  if config and approved and workers[device.id].config.ip == config.ip and workers[device.id].config.port == config.port then
+    config.certificate = candidate
+  end
   local profile = device.preferences.deviceIcon == "speaker" and "media-bridge-speaker" or "media-bridge"
   -- Nonpersistent cache allows retry on driver restart, and prevents metadata
   -- infoChanged events from recursively issuing the same update.
@@ -54,7 +72,7 @@ local function restart(_, device)
       log.warn("ST Windows Media Control: icon profile update failed; refresh to retry")
     end
   end
-  local worker = {refresh = true}
+  local worker = {refresh = true, config=config}
   workers[device.id] = worker -- Invalidates old requests on preference changes/removal.
   device:offline()
   if not config then
@@ -64,6 +82,24 @@ local function restart(_, device)
   cosock.spawn(function()
     local previous, delay, last_error = nil, 1, nil
     while workers[device.id] == worker do
+      if not config.certificate then
+        if not worker.candidate then
+          local ok, pem = pcall(client.discover, config)
+          if workers[device.id] ~= worker then return end
+          if ok and pem then
+            worker.candidate = pem
+            local first, second = client.fingerprint(pem)
+            device:emit_event(caps.mediaPlayback.supportedPlaybackCommands({}))
+            device:emit_event(caps.mediaPlayback.playbackStatus("paused"))
+            device:emit_event(caps.audioTrackData.audioTrackData({title=first, artist=second,
+              mediaSource="설정에서 인증서 승인 / Approve in Settings", album="", albumArtUrl=""}))
+            device:online()
+          else
+            device:offline()
+          end
+        end
+        socket.sleep(1)
+      else
       if not config.token then
         local ok, paired = pcall(client.request, config, "/v1/pair", {code=config.code})
         if workers[device.id] ~= worker then return end
@@ -90,6 +126,7 @@ local function restart(_, device)
       if not ok then state, err = nil, "request failed" end
       if state and not protocol.valid(state, config.id) then state, err = nil, "invalid state or device ID mismatch" end
       if state then
+        if not worker.savedTrust then remember(device, config); worker.savedTrust = true end
         if last_error then log.info("ST Windows Media Control: connection restored") end
         last_error, delay = nil, 1
         if protocol.newer(previous, state) then
@@ -106,12 +143,17 @@ local function restart(_, device)
         socket.sleep(delay)
         delay = math.min(delay * 2, 30)
       end
+      end -- verified/pending user-approved certificate
       end
     end
   end, "mediabridge-state-" .. device.id)
 end
 
 local function command(device, name, value)
+  local worker = workers[device.id]
+  if worker and worker.candidate and not worker.config.certificate then
+    return
+  end
   local config = configuration(device)
   if not config or not config.token then return end
   -- These handlers run in the device's ordered coroutine. The long-poll has its

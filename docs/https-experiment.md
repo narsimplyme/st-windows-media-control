@@ -1,5 +1,11 @@
 # HTTPS transport experiment
 
+Current implementation: the PC-specific test certificate module has been removed.
+Standalone setup now creates configuration/certificate, and the generic driver
+discovers the public PEM, displays a locally computed verification value and waits
+for user approval. See [protocol.md](protocol.md#security). The sections below
+record the earlier transport experiment and its results.
+
 The phone uses SmartThings; the Edge driver on the hub is the LAN client.
 The hub should retain the PC's trusted certificate, analogous to SSH known_hosts.
 The PC continues to authenticate the paired client separately. An IP address is
@@ -79,3 +85,26 @@ provisioned. No GitHub Release was published.
 Cleanup completed: the temporary probe server was stopped, its port 8766 firewall
 rule was removed, and the separate diagnostic driver was uninstalled from the
 hub. The actual HTTPS media driver and companion remain installed and running.
+
+## Standalone onboarding follow-up
+
+- A compressed self-contained Windows x64 EXE installs to the per-user folder.
+- Setup preselects a detected PC address, offers optional sign-in startup, creates
+  protected configuration and TLS key files, and requests firewall elevation.
+- The hub address is learned only after successful short-code exchange; initial
+  enrollment accepts local-subnet peers only while a pairing window is active.
+- Certificate discovery sends no pairing code or bearer token. Both screens show
+  the same 128-bit SHA-256 certificate fingerprint; the certificate approval preference explicitly approves it. Playback commands cannot approve trust.
+- Saved trust survives restarts. Certificate verification failure never initiates
+  automatic re-enrollment; a settings toggle explicitly requests comparison again.
+- The real hub initially rejected the SHA library's dynamic `load`. Its unchanged
+  INT64 implementation is now statically compiled and checked against SHA vectors
+  with dynamic loading disabled; the real hub successfully displays the digest.
+- Separate package lock files cover the ordinary and standalone build graphs.
+- Actions are pinned to verified Node.js 24 releases; the deprecation override
+  is not used to hide warnings.
+
+The first-run and pairing dialogs are rendered and exercised in isolated tests;
+the published EXE is also tested after copying it alone to an empty directory.
+No GitHub Release has been published. Certificate renewal remains an explicit
+maintenance operation rather than an automatic trust replacement.

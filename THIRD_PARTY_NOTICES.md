@@ -15,3 +15,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 SmartThings SDK modules are supplied by the hub, not vendored here. The Apache-2.0 Sonos and iquix Chromecast driver sources were inspected for capability and lifecycle patterns; no implementation code was copied. Source links and findings are in [architecture.md](docs/architecture.md).
 
 Optional development tools Lupa (MIT) and PyYAML (MIT) are not part of the agent distribution.
+
+The Edge driver includes Egor Skriptunoff's `pure_lua_SHA` at commit
+`6adac177c16c3496899f69d220dfb20bc31c03df` for SHA-256 certificate fingerprints.
+Source: https://github.com/Egor-Skriptunoff/pure_lua_SHA
+The original MIT license is retained in `edge-driver/SHA2-LICENSE`.
+The INT64 implementation chunk is compiled statically because Edge disables
+dynamic `load`; its algorithm is unchanged and checked against SHA-256 vectors.

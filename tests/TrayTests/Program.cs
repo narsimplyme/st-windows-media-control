@@ -68,7 +68,8 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         Application.EnableVisualStyles();
         var pairingSession = new PairingSession();
-        using var form = new PairingForm(config, state, SystemIcons.Application, pairingSession);
+        using var form = new PairingForm(config, state, SystemIcons.Application, pairingSession,
+            "-----BEGIN CERTIFICATE-----\nYWJj\n-----END CERTIFICATE-----");
         var controls = Descendants(form).ToArray();
         var fields = controls.OfType<TextBox>().ToArray();
         Check(fields.Length == 3 && fields.All(f => f.ReadOnly), "only address, port and short code are shown");
@@ -96,6 +97,22 @@ internal static class Program
         bitmap.Save(output);
         Check(fields.All(f => f.Width >= 250), "pairing values have readable width");
         Console.WriteLine("Preview: " + output);
+        var instructions = controls.OfType<Label>().Single(l => l.Text.Contains("35D95694"));
+        Check(instructions.Text.Contains("D3F16021") && instructions.Text.Contains("5DB293C7") && instructions.Text.Contains("899DAA59"), "pairing shows all 128 fingerprint bits for comparison");
+        Check(instructions.Bottom <= form.ClientSize.Height, "certificate comparison instructions fit inside dialog");
+        string? selected = null;
+        var setup = FirstRun.Configure("unused-test-config", new[] { "192.168.1.20", "192.168.1.30" },
+            (ip, enabled) => { selected = ip; Check(!enabled, "first-run autostart is an explicit opt-in"); },
+            dialog => {
+                dialog.ShowInTaskbar = false;
+                var content = Descendants(dialog).ToArray();
+                Check(content.OfType<ComboBox>().Single().SelectedItem?.ToString() == "192.168.1.20", "first run preselects detected PC address");
+                using var preview = new Bitmap(dialog.Width, dialog.Height);
+                dialog.DrawToBitmap(preview, new Rectangle(Point.Empty, preview.Size));
+                preview.Save(Path.Combine(Path.GetDirectoryName(output)!, "first-run-preview.png"));
+                content.OfType<Button>().Single().PerformClick();
+            });
+        Check(setup && selected == "192.168.1.20", "first-run setup completes without manual config editing");
     }
     private static IEnumerable<Control> Descendants(Control parent)
     {

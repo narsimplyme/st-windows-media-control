@@ -1,5 +1,32 @@
 # Windows companion
 
+## Standalone EXE
+
+Run the EXE as your normal Windows user. It places itself in the per-user app
+folder, offers the detected PC network addresses, and creates configuration and
+a private TLS certificate. Choose whether to start at Windows sign-in and approve
+the firewall elevation prompt. No manual JSON editing, SDK, or runtime is needed.
+The firewall rule is limited to the selected interface, port, application, local
+subnet and Private network profile. If elevation is canceled, retry **Configure
+firewall** from the tray menu. Administrator credentials are needed for that step.
+
+Open SmartThings settings, enter the PC address and 10-digit code, then compare
+all four certificate groups on its music card with the PC pairing window. Toggle **Confirm certificate** in SmartThings settings only when they match. The hub address, certificate
+trust and internal credentials are saved automatically. No certificate is built
+into the generic driver. Reopening the EXE does not overwrite configuration or
+regenerate an established certificate. To replace an already running EXE, exit
+the existing app from the tray first. Reserve the PC address in your router.
+
+Build this distribution from the repository root:
+
+```powershell
+dotnet publish windows-agent/STMediaBridge.Agent.csproj -p:PublishProfile=Standalone -o artifacts/standalone
+```
+
+The resulting `STMediaBridge.Agent.exe` is self-contained for Windows x64.
+Only the EXE is needed to run. The procedures below remain available for developers
+using a multi-file build or existing script-based installations.
+
 ## Build
 
 From the repository root, with a .NET 8 or newer SDK:

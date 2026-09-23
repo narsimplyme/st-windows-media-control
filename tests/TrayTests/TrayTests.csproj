@@ -13,6 +13,8 @@
     <Compile Include="../../windows-agent/TrayService.cs" Link="TrayService.cs" />
     <Compile Include="../../windows-agent/StateStore.cs" Link="StateStore.cs" />
     <Compile Include="../../windows-agent/AgentConfig.cs" Link="AgentConfig.cs" />
+    <Compile Include="../../windows-agent/TlsIdentity.cs" Link="TlsIdentity.cs" />
+    <Compile Include="../../windows-agent/FirstRun.cs" Link="FirstRun.cs" />
     <Compile Include="../../windows-agent/PairingSession.cs" Link="PairingSession.cs" />
   </ItemGroup>
 </Project>

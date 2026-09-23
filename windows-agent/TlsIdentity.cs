@@ -1,5 +1,5 @@
 using System.Net;
-using System.Security.Authentication;
+using System.Text;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -13,10 +13,33 @@ internal static class TlsIdentity
     public static void Enable(string configPath)
     {
         var config = AgentConfig.Load(configPath);
+        Provision(configPath, config, !config.TlsEnabled);
+        AgentConfig.ReplacePrivate(configPath, config with { TlsEnabled = true });
+    }
+
+    public static void Initialize(string configPath, string bindAddress)
+    {
+        if (File.Exists(configPath)) throw new IOException("Configuration already exists.");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(configPath))!);
+        var config = new AgentConfig(Guid.NewGuid().ToString(), AgentConfig.NewToken(), bindAddress, TlsEnabled: true);
+        Provision(configPath, config, true);
+        AgentConfig.Create(configPath, config);
+    }
+
+    public static string Fingerprint(string pem)
+    {
+        var body = pem.Replace("-----BEGIN CERTIFICATE-----", "").Replace("-----END CERTIFICATE-----", "");
+        body = string.Concat(body.Where(c => !char.IsWhiteSpace(c)));
+        var hex = Convert.ToHexString(SHA256.HashData(Encoding.ASCII.GetBytes(body)))[..32];
+        return string.Join(" ", Enumerable.Range(0, 4).Select(i => hex.Substring(i * 8, 8)));
+    }
+
+    private static void Provision(string configPath, AgentConfig config, bool allowCreate)
+    {
         var path = KeyPath(configPath);
         if (!File.Exists(path))
         {
-            if (config.TlsEnabled) throw new InvalidDataException("TLS identity is missing; restore it before starting.");
+            if (!allowCreate) throw new InvalidDataException("TLS identity is missing; restore it before starting.");
             using var key = RSA.Create(3072);
             var request = new CertificateRequest("CN=ST Windows Media Control " + config.DeviceId,
                 key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
@@ -38,7 +61,6 @@ internal static class TlsIdentity
         }
         using var identity = Load(configPath);
         File.WriteAllText(Path.Combine(Path.GetDirectoryName(path)!, "server-tls.pem"), identity.ExportCertificatePem());
-        AgentConfig.ReplacePrivate(configPath, config with { TlsEnabled = true });
     }
 
     public static X509Certificate2 Load(string configPath)

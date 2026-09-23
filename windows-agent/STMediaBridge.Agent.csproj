@@ -17,5 +17,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <EmbeddedResource Include="../THIRD_PARTY_NOTICES.md" LogicalName="STMediaBridge.ThirdPartyNotices" />
   </ItemGroup>
 </Project>

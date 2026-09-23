@@ -25,16 +25,16 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
             !IPAddress.TryParse(config.BindAddress, out var ip) || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork ||
             ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.Broadcast))
             throw new InvalidDataException("Use a nonzero device UUID, nonzero 32-character hex token, explicit IPv4 address and port 1024-65535. Rotate legacy tokens with --rotate-token.");
-        if (!IPAddress.IsLoopback(ip) && (!IPAddress.TryParse(config.HubAddress, out var hub) ||
+        if (!IPAddress.IsLoopback(ip) && !(config.TlsEnabled && config.HubAddress == "") && (!IPAddress.TryParse(config.HubAddress, out var hub) ||
             hub.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork || hub.Equals(IPAddress.Any)))
             throw new InvalidDataException("A LAN listener requires the hub's IPv4 address.");
         return config;
     }
-    public static void Create(string path)
+    public static void Create(string path, AgentConfig? initial = null)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         using var file = CreatePrivateFile(path);
-        JsonSerializer.Serialize(file, new AgentConfig(Guid.NewGuid().ToString(), NewToken()), Json);
+        JsonSerializer.Serialize(file, Validate(initial ?? new AgentConfig(Guid.NewGuid().ToString(), NewToken())), Json);
     }
     // Replace atomically on the same volume with a private destination ACL.
     // The host restarts after this returns, dropping old authenticated requests.

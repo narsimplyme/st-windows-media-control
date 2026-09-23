@@ -9,7 +9,7 @@ namespace STMediaBridge;
 // WinForms owns a separate STA thread; native media observers and HTTP remain
 // on the host's background threads. The icon appears only after the server starts.
 public sealed class TrayService(AgentConfig config, StateStore state,
-    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null) : IHostedService, IDisposable
+    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null) : IHostedService, IDisposable
 {
     private static int uiInitialized;
     private readonly object gate = new();
@@ -42,7 +42,7 @@ public sealed class TrayService(AgentConfig config, StateStore state,
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
             }
-            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup);
+            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup, certificate, configureFirewall);
             log.LogInformation("Tray icon ready");
             using var registration = stopping.Token.Register(context.RequestClose);
             if (!stopping.IsCancellationRequested) Application.Run(context);
@@ -72,11 +72,13 @@ internal sealed class TrayContext : ApplicationContext
     private readonly ContextMenuStrip menu = new();
     private readonly Icon icon;
     private PairingForm? pairing;
+    private readonly string? certificate;
     internal static string T(string korean, string english) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? korean : english;
 
-    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null)
+    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null)
     {
+        this.certificate = certificate;
         session ??= new PairingSession();
         _ = dispatcher.Handle; // Created on STA before cancellation can post to it.
         icon = CreateIcon();
@@ -84,6 +86,11 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(status);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(T("페어링 정보…", "Pairing information…"), null, (_, _) => ShowPairing(config, state, session));
+        if (configureFirewall is not null) menu.Items.Add(T("방화벽 설정…", "Configure firewall…"), null, (_, _) =>
+        {
+            try { configureFirewall(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        });
         if (regenerate is not null)
         {
             var reset = menu.Items.Add(T("페어링 초기화…", "Reset pairing…"));
@@ -135,6 +142,16 @@ internal sealed class TrayContext : ApplicationContext
             };
         }
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add(T("오픈소스 라이선스…", "Open-source licenses…"), null, (_, _) =>
+        {
+            using var stream = typeof(TrayContext).Assembly.GetManifestResourceStream("STMediaBridge.ThirdPartyNotices");
+            if (stream is null) return;
+            using var reader = new StreamReader(stream);
+            using var licenses = new Form { Text = ProductInfo.DisplayName + " — Licenses", Size = new Size(760, 560), StartPosition = FormStartPosition.CenterScreen };
+            licenses.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill,
+                ScrollBars = ScrollBars.Both, Text = reader.ReadToEnd(), Font = new Font("Segoe UI", 10) });
+            licenses.ShowDialog();
+        });
         var exit = menu.Items.Add(T(ProductInfo.DisplayName + " 종료", "Exit " + ProductInfo.DisplayName));
         exit.Click += (_, _) =>
         {
@@ -154,7 +171,7 @@ internal sealed class TrayContext : ApplicationContext
     }
     private void ShowPairing(AgentConfig config, StateStore state, PairingSession session)
     {
-        if (pairing is null || pairing.IsDisposed) pairing = new PairingForm(config, state, icon, session);
+        if (pairing is null || pairing.IsDisposed) pairing = new PairingForm(config, state, icon, session, certificate);
         if (!pairing.Visible) pairing.Show();
         if (pairing.WindowState == FormWindowState.Minimized) pairing.WindowState = FormWindowState.Normal;
         pairing.Activate();
@@ -210,7 +227,7 @@ internal sealed class PairingForm : Form
 {
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 1000 };
     private readonly Label feedback = new() { AutoSize = true, ForeColor = Color.DimGray };
-    public PairingForm(AgentConfig config, StateStore state, Icon icon, PairingSession? session = null)
+    public PairingForm(AgentConfig config, StateStore state, Icon icon, PairingSession? session = null, string? certificate = null)
     {
         session ??= new PairingSession();
         Text = ProductInfo.DisplayName + " — " + TrayContext.T("페어링 정보", "Pairing information");
@@ -220,7 +237,7 @@ internal sealed class PairingForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
-        ClientSize = new Size(680, 435);
+        ClientSize = new Size(720, certificate is null ? 435 : 545);
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 3, RowCount = 10,
@@ -244,8 +261,11 @@ internal sealed class PairingForm : Form
         renew.Click += (_, _) => code.Text = session.Generate();
         layout.Controls.Add(renew, 1, 6);
         var help = new Label { AutoSize = true, MaximumSize = new Size(625, 0), Margin = new Padding(0, 12, 0, 12),
-            Text = TrayContext.T("SmartThings 설정에 PC 주소와 10자리 페어링 코드만 입력하세요.\n연결 후 코드는 만료되어도 됩니다. 기기 ID·토큰은 자동으로 처리됩니다.",
-                "Enter the PC address and 10-digit pairing code in SmartThings settings.\nOnce paired, the code may expire. Device ID and token are handled automatically.") };
+            Text = certificate is null ? TrayContext.T("SmartThings 설정에 PC 주소와 10자리 페어링 코드를 입력하세요.",
+                "Enter the PC address and 10-digit pairing code in SmartThings settings.") :
+                TrayContext.T("1. SmartThings 설정에 PC 주소와 위 코드를 입력하세요.\n2. 음악 카드의 인증서 확인값 네 묶음이 아래와 모두 같은지 비교하세요.\n3. 같을 때만 SmartThings 설정의 ‘인증서 일치 확인’을 전환하세요.\n다르면 승인하지 마세요. 연결 후 코드는 만료되어도 됩니다.\n\n인증서 확인값:\n",
+                "1. Enter the PC address and code in SmartThings settings.\n2. Compare all four certificate groups on its music card with these.\n3. Only if they match, toggle Confirm certificate in Settings.\nDo not approve a mismatch. The code may expire after pairing.\n\nCertificate verification:\n") +
+                string.Join(Environment.NewLine, TlsIdentity.Fingerprint(certificate).Split(' ').Chunk(2).Select(parts => string.Join(" ", parts))) };
         layout.Controls.Add(help, 0, 7); layout.SetColumnSpan(help, 3);
         layout.Controls.Add(feedback, 0, 8); layout.SetColumnSpan(feedback, 3);
         var close = new Button { Text = TrayContext.T("닫기", "Close"), AutoSize = true, Anchor = AnchorStyles.Right };
