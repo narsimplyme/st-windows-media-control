@@ -1,0 +1,65 @@
+name: media-bridge-speaker
+components:
+  - id: main
+    capabilities:
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+      - id: mediaPlayback
+        version: 1
+        config:
+          values:
+            - key: playbackStatus.value
+              enabledValues: [playing, paused, stopped]
+            - key: '{{enumCommands}}'
+              enabledValues: [play, pause]
+      - id: mediaTrackControl
+        version: 1
+      - id: audioTrackData
+        version: 1
+      - id: refresh
+        version: 1
+    categories:
+      - name: Speaker
+preferences:
+  - name: pcAddress
+    title: PC IP 주소 (IPv4)
+    description: "PC 트레이의 페어링 정보에 표시된 IPv4 주소를 입력하세요. 예: 192.168.50.170"
+    required: true
+    preferenceType: string
+    definition:
+      stringType: text
+      minLength: 7
+      maxLength: 15
+      default: "0.0.0.0"
+
+  - name: pcPort
+    title: PC port
+    required: true
+    preferenceType: integer
+    definition:
+      minimum: 1024
+      maximum: 65535
+      default: 8765
+
+  - name: pairingCode
+    title: Pairing code / 페어링 코드
+    description: Enter the 10 digits shown in the PC tray pairing window.
+    required: true
+    preferenceType: integer
+    definition:
+      minimum: 0
+      maximum: 9999999999
+      default: 0
+
+  - name: deviceIcon
+    title: Device icon / 기기 아이콘
+    description: Choose the device icon. Reopen the device screen after saving.
+    required: true
+    preferenceType: enumeration
+    definition:
+      options:
+        monitor: Monitor / 모니터
+        speaker: Speaker / 스피커
+      default: monitor

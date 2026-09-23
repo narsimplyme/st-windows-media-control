@@ -1,0 +1,106 @@
+# ST Windows Media Control LAN protocol v1
+
+HTTP/1.1 JSON over TCP. Default configurable port: **8765**. UTF-8 JSON, camelCase property names. All control/state endpoints require `Authorization: Bearer <32-hex-character-token>`. The optional artwork-only route has separate source-IP checks (see below). Token comparison is case-sensitive; copy it exactly. The `POST /v1/pair` code exchange is described below. Every response disables caching. No redirects, CORS, browser UI, or cloud callbacks.
+
+The token encodes 16 cryptographically random bytes (128 bits); the all-zero value is reserved for unpaired profile defaults and cannot authenticate a configured agent. The all-zero UUID is also invalid. Legacy 64-character tokens must be rotated using the rebuilt companion's `--rotate-token` option or migrated by the updated installer, then copied to SmartThings. There is no UI truncation or legacy-length fallback. The HTTP paths and snapshot format are unchanged.
+
+## Endpoints
+
+| Method/path | Purpose |
+| --- | --- |
+| `GET /v1/state` | Current complete snapshot, immediately |
+| `GET /v1/events?epoch=<epoch>&after=<revision>` | Return immediately if cursor differs, otherwise hold up to 20 seconds for a native state change |
+| `POST /v1/command` | Execute one allowlisted command; return acknowledgement, not speculative state |
+
+Snapshot shape (illustrative placeholder identities):
+
+```json
+{
+  "deviceId": "12345678-1234-1234-1234-123456789abc",
+  "epoch": "0123456789abcdef0123456789abcdef",
+  "revision": 42,
+  "audio": {"available": true, "volume": 67, "muted": false},
+  "media": {
+    "available": true,
+    "playback": "playing",
+    "title": "Track title",
+    "artist": "Artist",
+    "source": "Spotify",
+    "canPlay": true,
+    "canPause": true,
+    "canNext": false,
+    "canPrevious": false,
+    "canToggle": true
+  }
+}
+```
+
+`deviceId` is stable across reboots; `epoch` is 32 hex characters freshly generated on process start. `revision` starts at 1 and increases for changed state only. A snapshot includes both audio and media, never a delta. Availability false means associated defaults are unavailable, not actual volume zero. Metadata is an empty string when absent. `source` is the Windows app display name when resolvable, otherwise its original app model ID; it is a display label, not a stable session identifier. Playback is playing, paused or stopped; no session is stopped/available=false.
+
+`after` is an integer revision. Missing cursor, mismatched epoch, old revision, or future revision returns the current full snapshot immediately. Equal cursor waits for a signal. Timeout returns HTTP 200 with a full snapshot, possibly unchanged. Disconnected requests cancel their wait. Notifications between checking the revision and waiting cannot be lost because both happen under one lock.
+
+Examples of command bodies:
+
+```json
+{"command":"setVolume","value":67}
+{"command":"adjustVolume","value":-5}
+{"command":"setMute","value":true}
+{"command":"play"}
+{"command":"pause"}
+{"command":"toggle"}
+{"command":"next"}
+{"command":"previous"}
+```
+
+Each line is a separate request. Volume is an integer 0–100. Delta is an integer -100–100 and is applied to current native volume, clamped to range. Mute must be a JSON boolean. Audio values are read back after writes. Media calls check the current session and its supported controls. No command launches a player.
+
+Responses:
+
+- `200 {"accepted":true}`: native audio operation completed or media request accepted. Watch state to learn the observed result.
+- `400 {"error":"..."}`: malformed JSON/command/value.
+- `401`: absent or incorrect token, including read-only endpoints.
+- `403`: remote address is neither the configured hub nor loopback.
+- `404`/`405`: unknown path/method.
+- `409 {"error":"unavailable_or_unsupported"}`: endpoint/session unavailable, control unsupported/refused or operation timed out.
+- `413`: request exceeds the 1 KB server body limit. Other malformed HTTP is rejected by Kestrel.
+
+## Ordering, recovery and retries
+
+The Edge driver holds at most one active event request per generation. Commands run independently in ordered device callbacks. It applies only valid snapshots for the configured UUID and a newer revision (or new epoch). Command acknowledgements never update attributes, so delayed command replies cannot overwrite newer notifications.
+
+On reconnect, the old cursor returns an immediate snapshot if anything changed. A hub restart begins with `/v1/state`. A companion restart changes epoch. Reconciliation uses the same full snapshot structure, with no replay backlog or subscription database. Intermediate wheel ticks may be coalesced; the goal is current-state consistency, not an audit log.
+
+No command is retried automatically. A timed-out next/previous/toggle may have executed; retry could advance twice. Absolute volume/mute are idempotent but are likewise left for a deliberate new user action. There is no command ID or deduplication cache in v1.
+
+The driver limits response bodies to 16 KB, validates identity/schema, does not follow redirects, and uses a 25-second socket timeout. Failed reads retry with exponential backoff from 1 to 30 seconds. New pairing settings invalidate in-flight responses from old workers.
+
+## Security
+
+Optional artwork adds `media.album` and `media.albumArtUrl`. `GET /v1/artwork/cover.jpg` serves the current in-memory JPEG (up to 1 MB, at most 1024 pixels per dimension). A source on the bound interface's IPv4 subnet or loopback is required; no image key or bearer token is required. Missing/disabled artwork and other filenames return 404; other sources return 403. The URL stays fixed across tracks. There are no artwork write routes. Phone clients remain forbidden from control/state routes. See [artwork setup and limitations](album-art.md).
+
+The generated token has 128 bits of randomness. The listener defaults to loopback; LAN binding requires an explicit IPv4 interface and configured hub IPv4. The application checks source address even if the firewall is accidentally broader, and the supplied firewall rule additionally limits port, program, interface, source and Private profile. Kestrel limits concurrent connections to 16 and request bodies to 1 KB. Every state/control endpoint authenticates before reading state or invoking an action. The separate read-only artwork route uses a fixed cover.jpg path plus allowed source IP checks.
+
+HTTP bearer tokens do **not** protect against LAN sniffing or an active intermediary. An observer could steal and replay the token. Restrict deployment to a trusted network, never expose the port on the internet, and rotate the token if disclosed. Source-IP filtering alone is not authentication. No claims of TLS, message signing, replay resistance or protection from a compromised authorized hub are made.
+
+The installed configuration file is restricted to the installing Windows user and LocalSystem. The Edge driver stores the internal device ID/token in persistent device fields, not user-editable preferences. This is not a dedicated secret-management API. Neither component deliberately logs tokens. SmartThings SDK diagnostic logging may expose preferences; redact before sharing.
+
+The API exposes only the listed audio/media operations. It cannot accept shell commands, process names, paths, keystrokes, power operations or arbitrary URLs.
+
+## Short-code pairing
+
+The PC tray generates a random 10-digit decimal code (no leading zero), valid
+for ten minutes and kept in memory only. `POST /v1/pair` with JSON
+`{"code":"1234567890"}` exchanges a valid code for `{deviceId, token}`. The example
+is illustrative, not an actual code. This route accepts only the configured
+hub or loopback and does not require an existing bearer token. All responses
+are no-store. Five exchange attempts per minute are allowed globally; exhausted
+budgets return 429. Wrong, missing or expired codes return 401. Reissuing a code
+does not reset the attempt budget. Response retries within the validity window
+are allowed. A host restart invalidates the code.
+
+The Edge driver binds saved internal credentials to the PC address, port and
+entered code. Restart/icon changes reuse credentials without exchanging again;
+changing the address, port or code prevents reusing old credentials. Stale
+responses from superseded workers cannot replace saved credentials. Legacy
+UUID/token preferences, when present, are migrated into private persisted fields.
+The visible profile contains only PC address, port, pairing code and icon choice.

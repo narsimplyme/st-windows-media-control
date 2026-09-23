@@ -1,0 +1,6 @@
+name: ST Windows Media Control
+packageKey: st-mediabridge-v1
+description: Windows system audio and media control over the local network
+permissions:
+  lan: {}
+  discovery: {}
