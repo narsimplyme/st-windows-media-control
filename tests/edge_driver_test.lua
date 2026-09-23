@@ -103,7 +103,7 @@ local withArt=snapshot(2,12,string.rep("b",32))
 withArt.media.album="Album"
 withArt.media.albumArtUrl="http://192.168.1.20:8765/v1/artwork/" .. string.rep("c",32)
 step(worker,withArt)
-assert(device.events[#device.events].value.albumArtUrl==withArt.media.albumArtUrl, "art-only updates must emit")
+assert(device.events[#device.events].value.albumArtUrl=="", "old companion artwork must not be forwarded")
 step(worker)
 step(worker,snapshot(3,12,string.rep("b",32)))
 assert(device.events[#device.events].value.albumArtUrl=="", "absent art must clear prior URL")
@@ -118,24 +118,6 @@ captured.lifecycle_handlers.removed(driver,device)
 step(worker,snapshot(200,99))
 assert(coroutine.status(worker)=="dead" and #device.events==count, "removed device must stop")
 print("PASS Edge discovery, commands, event mapping, ordering and lifecycle invalidation")
-
-preferences.artworkHttpsTest=true
-captured.lifecycle_handlers.infoChanged(driver,device)
-worker=spawned[#spawned]
-step(worker)
-local diagnostic=snapshot(1,12)
-diagnostic.media.available=true
-diagnostic.media.albumArtUrl=withArt.media.albumArtUrl
-step(worker,diagnostic)
-assert(device.events[#device.events].value.albumArtUrl==withArt.media.albumArtUrl, "obsolete test preference must not override real artwork")
-assert(diagnostic.media.albumArtUrl==withArt.media.albumArtUrl, "diagnostic must not mutate received state")
-preferences.artworkHttpsTest=false
-captured.lifecycle_handlers.infoChanged(driver,device)
-worker=spawned[#spawned]
-step(worker)
-step(worker,diagnostic)
-assert(device.events[#device.events].value.albumArtUrl==withArt.media.albumArtUrl, "disabling test must restore LAN artwork")
-print("PASS real artwork preserved with obsolete diagnostic preferences")
 
 preferences.deviceIcon = "speaker"
 captured.lifecycle_handlers.infoChanged(driver,device)

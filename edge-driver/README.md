@@ -4,23 +4,26 @@ One manually paired LAN device uses one `main` component with `audioVolume`, `au
 
 ## Install on your hub
 
-Install and authenticate the [official SmartThings CLI](https://github.com/SmartThingsCommunity/smartthings-cli). From the repository root:
+**[Enroll / 드라이버 설치](https://bestow-regional.api.smartthings.com/invite/kVlnanYee249)**
 
-```powershell
-smartthings edge:channels:create
-smartthings edge:channels:enroll
-smartthings edge:drivers:package .\edge-driver --install
-```
+1. Open the link and sign in with the Samsung account used by SmartThings.
+2. Accept the invitation, select your hub and choose **Enroll**.
+3. Open **Available Drivers** and install **ST Windows Media Control**.
+4. In the SmartThings app, use **Add device → Scan nearby**, then follow pairing below.
 
-Follow the CLI prompts to select your channel and hub. Alternatively, supply their IDs explicitly:
+No SmartThings CLI is needed by users. Enrollment adds the channel; installing
+the driver and scanning nearby are still separate steps. A supported Edge hub
+and the Windows companion are required. See the [official enrollment instructions](https://developer.smartthings.com/docs/devices/hub-connected/enroll-in-a-shared-channel).
+
+### Developer packaging only
+
+Maintainers who modify the driver can use the official SmartThings CLI:
 
 ```powershell
 smartthings edge:drivers:package .\edge-driver --channel <channel-id> --hub <hub-id>
 ```
 
-Use either `--install` for interactive hub selection or `--hub <hub-id>` for an explicit hub, not both. The installed CLI treats these as conflicting options and may report an internal `isAxiosError` TypeError instead of a useful argument error. `--hub` already requests installation.
-
-See the [official channel workflow](https://developer.smartthings.com/docs/devices/hub-connected/driver-channels) for account/channel enrollment details. This repository does not include a prepublished driver or invitation URL. Hub installation and account-side profile validation have not been run in this workspace.
+Do not combine `--install` and `--hub`; the installed CLI treats them as conflicting.
 
 ## Pair
 
@@ -49,7 +52,7 @@ Volume steps use the current Windows volume, not a potentially stale SmartThings
 
 After updating the driver, reopen the device screen and test the center button while music is playing. It should pause, then Play should resume. If nothing happens, capture logcat: `playback stop -> pause` or `playback pause -> pause` confirms the command arrived; a following HTTP 409 means Windows/the app rejected it. The standard card's icon itself is controlled by SmartThings and has not been verified to change to a pause symbol.
 
-`audioTrackData` carries title, artist, and the Windows app display name (app model ID when name resolution is unavailable). Empty fields are cleared when sessions disappear. Optional `album` and `albumArtUrl` fields carry artwork from the companion; see [setup](../docs/album-art.md). The phone, not the hub, must be able to fetch the URL. Windows statuses other than Playing/Paused map to SmartThings `stopped`; lack of a session also maps to stopped. An unavailable output endpoint makes the device offline and preserves its last known volume instead of inventing a zero reading.
+`audioTrackData` carries title, artist, and the Windows app display name (app model ID when name resolution is unavailable). Empty fields are cleared when sessions disappear. Album title remains available; artwork is not supported. Windows statuses other than Playing/Paused map to SmartThings `stopped`; lack of a session also maps to stopped. An unavailable output endpoint makes the device offline and preserves its last known volume instead of inventing a zero reading.
 
 Standard mobile-client layout and metadata visibility require device testing. You cannot assume the exact proposed Now Playing/button arrangement on every SmartThings app version.
 

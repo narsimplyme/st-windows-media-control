@@ -31,7 +31,7 @@ Allow just the hub through Windows Firewall. Run the following in **elevated Pow
   -AgentExe "$env:LOCALAPPDATA\STMediaBridge\bin\STMediaBridge.Agent.exe"
 ```
 
-The rule allows the configured TCP port only on the Private network profile, only at the selected PC interface, and only from the hub's IP plus the local subnet for artwork. Those clients can only read artwork; the application still blocks their control/state requests. Do not accept a broader automatic firewall prompt. If elevation uses a different administrator account, supply the original user's absolute paths and arrange access to the configuration yourself.
+The rule allows the configured TCP port only on the Private network profile, only at the selected PC interface, and only from the configured hub's IP. Do not accept a broader automatic firewall prompt. If elevation uses a different administrator account, supply the original user's absolute paths and arrange access to the configuration yourself.
 
 ## Pair
 
@@ -57,10 +57,6 @@ dotnet windows-agent/bin/Debug/net8.0-windows10.0.19041.0/STMediaBridge.Agent.dl
 
 For diagnostics without the tray UI, add `--no-tray` when launching the agent. Initialization and token rotation do not create a tray icon.
 
-## Optional album art
-
-See [album artwork setup](../docs/album-art.md). No phone IP registration is needed. Artwork is enabled by default for the bound network interface's local subnet. Update the companion and reapply the firewall rule; set `artworkEnabled` to `false` to disable it. The earlier `artworkClients` setting is ignored and removed by the installer.
-
 ## Logs and troubleshooting
 
 Logs are alongside configuration in `logs\agent.log`, with one rotated backup; each is approximately 1 MB maximum. Normal logs contain availability transitions and failed command types, not tokens or song metadata.
@@ -71,7 +67,7 @@ Get-ScheduledTask | Where-Object TaskName -Like 'ST MediaBridge-*'
 ```
 
 - No connection: check task state, configured IP, Private network profile, hub address, VLAN routing and the firewall rule. A changed DHCP address requires configuration and firewall updates.
-- HTTP 401: token mismatch. HTTP 403: source is not the configured hub or loopback. Control/state endpoints require the internal token; the short-code exchange and artwork have separate access checks.
+- HTTP 401: token mismatch. HTTP 403: source is not the configured hub or loopback. Control/state endpoints require the internal token; the short-code exchange is also restricted to the configured hub or loopback.
 - Audio unavailable: enable an output device and set the Windows default multimedia output. Endpoint switches and USB unplug/replug are observed; a 20-second refresh also recovers missed notifications.
 - Playback unavailable: open a GSMTC-compatible app and start a track locally. Merely producing sound does not guarantee GSMTC support. Windows chooses the current session.
 - HTTP 409: no endpoint/session, unsupported action, application refusal, or media-operation timeout. It is not a successful command. A timed-out native media request can complete late; do not automatically retry next/previous/toggle.

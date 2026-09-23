@@ -78,7 +78,9 @@ with tempfile.TemporaryDirectory(prefix="st-mediabridge-") as directory:
         for command in ["shutdown", "run", "anything"]:
             assert request("/v1/command", {"command": command})[0] == 400
         assert request("/missing")[0] == 404
-        assert request("/v1/artwork/" + "0" * 32, auth="")[0] == 404
+        assert request("/v1/artwork/cover.jpg", auth="")[0] == 401
+        assert request("/v1/artwork/cover.jpg")[0] == 404
+        assert "albumArtUrl" not in state["media"]
         assert request("/v1/state", auth="artwork-key")[0] == 401
         assert request("/v1/events?epoch=old&after=99999")[1]["epoch"] == state["epoch"]
         print("PASS HTTP authentication, validation, command allowlist and restart cursor")

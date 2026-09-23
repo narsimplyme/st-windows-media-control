@@ -82,8 +82,9 @@ if (-not [guid]::TryParseExact($config.deviceId, 'D', [ref]$parsedId) -or $parse
 $config | Add-Member -NotePropertyName bindAddress -NotePropertyValue $PcAddress.ToString() -Force
 $config | Add-Member -NotePropertyName hubAddress -NotePropertyValue $HubAddress.ToString() -Force
 $config | Add-Member -NotePropertyName port -NotePropertyValue $Port -Force
-# The old phone-IP allowlist is no longer used. Missing artworkEnabled means true.
+# Remove obsolete image-serving preferences.
 $config.PSObject.Properties.Remove('artworkClients')
+$config.PSObject.Properties.Remove('artworkEnabled')
 $config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
 # Remove inherited access from the secret file; retain user and LocalSystem.
 $acl = New-Object System.Security.AccessControl.FileSecurity

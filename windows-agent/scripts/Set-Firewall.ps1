@@ -13,9 +13,8 @@ if ($pc.Equals([System.Net.IPAddress]::Any) -or $hub.Equals([System.Net.IPAddres
 $ruleId = if ($config.firewallRuleId) { $config.firewallRuleId } else { $config.deviceId }
 $ruleName = 'STMediaBridge-' + $ruleId
 $sources = @($hub.ToString())
-if ($config.artworkEnabled -ne $false) { $sources += 'LocalSubnet' }
 Get-NetFirewallRule -Name $ruleName -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-New-NetFirewallRule -Name $ruleName -DisplayName 'ST Windows Media Control (hub control and LAN artwork)' `
+New-NetFirewallRule -Name $ruleName -DisplayName 'ST Windows Media Control (hub control)' `
     -Direction Inbound -Action Allow -Protocol TCP -LocalPort $config.port -LocalAddress $pc.ToString() `
     -RemoteAddress $sources -Program $exe -Profile Private | Out-Null
-Write-Host 'Created a Private-profile rule for the hub and local-subnet artwork. The agent still restricts control/state requests to the hub.'
+Write-Host 'Created a Private-profile rule restricted to the configured hub.'

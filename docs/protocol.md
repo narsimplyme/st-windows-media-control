@@ -1,6 +1,6 @@
 # ST Windows Media Control LAN protocol v1
 
-HTTP/1.1 JSON over TCP. Default configurable port: **8765**. UTF-8 JSON, camelCase property names. All control/state endpoints require `Authorization: Bearer <32-hex-character-token>`. The optional artwork-only route has separate source-IP checks (see below). Token comparison is case-sensitive; copy it exactly. The `POST /v1/pair` code exchange is described below. Every response disables caching. No redirects, CORS, browser UI, or cloud callbacks.
+HTTP/1.1 JSON over TCP. Default configurable port: **8765**. UTF-8 JSON, camelCase property names. All control/state endpoints require `Authorization: Bearer <32-hex-character-token>`. Token comparison is case-sensitive; copy it exactly. The `POST /v1/pair` code exchange is described below. Every response disables caching. No redirects, CORS, browser UI, or cloud callbacks.
 
 The token encodes 16 cryptographically random bytes (128 bits); the all-zero value is reserved for unpaired profile defaults and cannot authenticate a configured agent. The all-zero UUID is also invalid. Legacy 64-character tokens must be rotated using the rebuilt companion's `--rotate-token` option or migrated by the updated installer, then copied to SmartThings. There is no UI truncation or legacy-length fallback. The HTTP paths and snapshot format are unchanged.
 
@@ -76,9 +76,8 @@ The driver limits response bodies to 16 KB, validates identity/schema, does not 
 
 ## Security
 
-Optional artwork adds `media.album` and `media.albumArtUrl`. `GET /v1/artwork/cover.jpg` serves the current in-memory JPEG (up to 1 MB, at most 1024 pixels per dimension). A source on the bound interface's IPv4 subnet or loopback is required; no image key or bearer token is required. Missing/disabled artwork and other filenames return 404; other sources return 403. The URL stays fixed across tracks. There are no artwork write routes. Phone clients remain forbidden from control/state routes. See [artwork setup and limitations](album-art.md).
 
-The generated token has 128 bits of randomness. The listener defaults to loopback; LAN binding requires an explicit IPv4 interface and configured hub IPv4. The application checks source address even if the firewall is accidentally broader, and the supplied firewall rule additionally limits port, program, interface, source and Private profile. Kestrel limits concurrent connections to 16 and request bodies to 1 KB. Every state/control endpoint authenticates before reading state or invoking an action. The separate read-only artwork route uses a fixed cover.jpg path plus allowed source IP checks.
+The generated token has 128 bits of randomness. The listener defaults to loopback; LAN binding requires an explicit IPv4 interface and configured hub IPv4. The application checks source address even if the firewall is accidentally broader, and the supplied firewall rule additionally limits port, program, interface, source and Private profile. Kestrel limits concurrent connections to 16 and request bodies to 1 KB. Every state/control endpoint authenticates before reading state or invoking an action.
 
 HTTP bearer tokens do **not** protect against LAN sniffing or an active intermediary. An observer could steal and replay the token. Restrict deployment to a trusted network, never expose the port on the internet, and rotate the token if disclosed. Source-IP filtering alone is not authentication. No claims of TLS, message signing, replay resistance or protection from a compromised authorized hub are made.
 
@@ -104,3 +103,5 @@ changing the address, port or code prevents reusing old credentials. Stale
 responses from superseded workers cannot replace saved credentials. Legacy
 UUID/token preferences, when present, are migrated into private persisted fields.
 The visible profile contains only PC address, port, pairing code and icon choice.
+
+Album artwork serving has been removed. The media snapshot retains the album title but no image URL. The Edge driver clears any previously published image URL on its first metadata update.

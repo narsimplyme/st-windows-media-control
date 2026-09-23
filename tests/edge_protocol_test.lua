@@ -30,11 +30,6 @@ assert(not p.valid(s,config.deviceId))
 s.audio.volume=12.5
 assert(not p.valid(s,config.deviceId))
 s.audio.volume=100
-s.media.albumArtUrl="http://192.168.1.20:8765/v1/artwork/cover.jpg"
-assert(p.valid(s,config.deviceId), "fixed cover.jpg accepted")
-s.media.albumArtUrl="http://192.168.1.20:8765/v1/artwork/cover.jpg/other"
-assert(not p.valid(s,config.deviceId), "extra URL suffix rejected")
-s.media.albumArtUrl=""
 s.media.canPlay=nil
 assert(not p.valid(s,config.deviceId))
 print("PASS Edge protocol validation and restart/revision ordering")

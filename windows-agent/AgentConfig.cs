@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace STMediaBridge;
 
-public sealed record AgentConfig(string DeviceId, string Token, string BindAddress = "127.0.0.1", int Port = 8765, string HubAddress = "", bool ArtworkEnabled = true, string? FirewallRuleId = null)
+public sealed record AgentConfig(string DeviceId, string Token, string BindAddress = "127.0.0.1", int Port = 8765, string HubAddress = "", string? FirewallRuleId = null)
 {
     public const int TokenBytes = 16;
     public const int TokenLength = TokenBytes * 2;

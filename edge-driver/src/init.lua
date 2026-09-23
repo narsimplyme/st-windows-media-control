@@ -24,10 +24,9 @@ local function emit(device, s, old)
   end
   if not old or m.playback ~= old.media.playback then device:emit_event(caps.mediaPlayback.playbackStatus(m.playback)) end
   if not old or m.title ~= old.media.title or m.artist ~= old.media.artist or m.source ~= old.media.source or
-      m.album ~= old.media.album or m.albumArtUrl ~= old.media.albumArtUrl then
-    local art_url = m.albumArtUrl or ""
+      m.album ~= old.media.album then
     device:emit_event(caps.audioTrackData.audioTrackData({title=m.title, artist=m.artist, mediaSource=m.source,
-      album=m.album or "", albumArtUrl=art_url}))
+      album=m.album or "", albumArtUrl=""}))
   end
   -- Lack of an output endpoint leaves last known volume intact, not a false zero.
   if a.available then device:online() else device:offline() end

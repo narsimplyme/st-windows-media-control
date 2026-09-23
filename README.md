@@ -4,13 +4,13 @@
 
 ST Windows Media Control connects a SmartThings Edge hub directly to a small Windows companion. One device provides master volume, mute, play/pause, and previous/next track. Windows audio changes are sent back immediately using Core Audio notifications. Compatible media apps supply playback state and metadata through Windows GSMTC.
 
-**Status: initial implementation, locally tested; real SmartThings hub/app validation is still required.** It is not a certified SmartThings integration. See [validation status](docs/testing.md).
+**Status: experimental; playback and volume tested with a real SmartThings hub and Android app.** It is not a certified SmartThings integration. See [validation status](docs/testing.md).
 
 ## Features
 
 - Exact volume 0–100 and mute in both directions, for the default multimedia output.
 - Play, pause, next and previous through Windows' selected media session.
-- Standard SmartThings capabilities, including optional title/artist/source metadata and local album artwork.
+- Standard SmartThings capabilities, including optional title/artist/source metadata.
 - Event-driven state updates, automatic reconnect, and periodic reconciliation.
 - Token-authenticated LAN API restricted to a configured hub address.
 - Pairing: type one 10-digit numeric code from the PC tray. Internal credentials are exchanged and saved automatically.
@@ -20,10 +20,14 @@ No PC power management, remote shell, broker, or third-party bridge is included.
 
 ## Get started
 
-Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; .NET 8 SDK or newer to build; a supported SmartThings Edge hub on the LAN; a signed-in Windows user; and the SmartThings CLI for installing your own driver. Use a currently supported Windows/.NET environment.
+**[Enroll / SmartThings 드라이버 설치](https://bestow-regional.api.smartthings.com/invite/kVlnanYee249)**
+
+Samsung 계정 로그인 → 허브 선택 → Enroll → Available Drivers에서 **ST Windows Media Control** 설치. 사용자는 SmartThings CLI를 설치할 필요가 없습니다.
+
+Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; .NET 8 SDK or newer to build; a supported SmartThings Edge hub on the LAN; a signed-in Windows user. Use a currently supported Windows/.NET environment.
 
 1. [Build and install the Windows companion](windows-agent/README.md). Reserve PC and hub IPv4 addresses in your router.
-2. [Install the Edge driver and pair](edge-driver/README.md) with the PC address and 10-digit pairing code.
+2. [Enroll and install the Edge driver](edge-driver/README.md), then pair with the PC address and 10-digit pairing code.
 3. Rename the single device to **ST Windows Media Control — Gaming PC**.
 4. Complete the [volume-first acceptance test](docs/testing.md) before testing media controls.
 
@@ -42,7 +46,7 @@ Existing internal credentials are retained during upgrade. If reconnection is ne
 | `docs/testing.md` | Automated checks and hardware acceptance tests |
 | `tests/` | State-store, Lua, HTTP and optional native-audio tests |
 
-See [album artwork setup](docs/album-art.md) to enable local thumbnails on the same LAN.
+Album artwork is not supported.
 
 ## Development
 

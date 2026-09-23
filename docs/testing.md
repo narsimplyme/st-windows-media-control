@@ -23,11 +23,9 @@ Follow-up: the user tested packaging against the real API and supplied 422 respo
 
 These results prove the native audio/protocol portion locally; they do not claim the full SmartThings slider milestone has passed on hardware.
 
-Subsequent user testing confirmed the real device works and supplied a screenshot with live Spotify metadata. Optional album art has since been implemented: the current local suite passes 131 assertions including image cache/key/size/type checks, plus Edge artwork event/clearing and HTTP authentication checks. Album-art rendering on the phone has not yet been verified; follow [artwork setup](album-art.md).
 
 Playback follow-up: the user reported the standard card's Stop button did nothing. The driver previously had no stop handler. It now maps that command to pause, advertises a stable play/pause command set, and logs received playback commands. Lua regression checks verify repeated stop requests stay pause requests and explicit play resumes; real mobile-button behavior and the displayed icon still require retesting after driver update.
 
-LAN artwork follow-up: per-phone registration was removed at the user's request. Artwork defaults to enabled for the bound interface's actual IPv4 subnet; command/state access remains hub/loopback plus token. The suite now passes 137 checks including same-subnet access, non-/24 masks, other-subnet/public-source rejection and an explicit artwork-disable setting. Published-agent HTTP authentication and installer/firewall script syntax checks also pass. Mobile rendering remains a separate hardware check.
 
 Tray follow-up (2026-09-22): nine checks pass for host-start gating, STA startup/shutdown, shutdown before startup, read-only pairing fields, token masking/reveal, copy-button presence and field width. The pairing window was rendered and visually inspected with dummy credentials. These checks do not exercise the real clipboard or certify Explorer interaction and all DPI settings on the user's desktop. HTTP smoke tests run with `--no-tray`.
 
@@ -111,3 +109,5 @@ persistence, restarts, stale responses, invalid responses and address/code bindi
 Published-agent HTTP smoke checks reject unauthorized/expired code exchange,
 rate-limit attempts, and prevent using a short code as a control bearer token.
 The updated pairing dialog was rendered and visually checked with dummy data.
+
+Album artwork removal: 139 state/configuration/pairing checks, Lua behavior checks and published HTTP smoke checks pass. The former image route returns 404 with valid authentication and has no unauthenticated exemption. Thumbnail extraction and local-subnet firewall access were removed.

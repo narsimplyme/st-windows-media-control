@@ -45,9 +45,6 @@ function M.valid(s, id)
   local a, m = s.audio, s.media
   if type(a) ~= "table" or type(m) ~= "table" then return false end
   if m.album ~= nil and (type(m.album) ~= "string" or #m.album > 1024) then return false end
-  if m.albumArtUrl ~= nil and (type(m.albumArtUrl) ~= "string" or #m.albumArtUrl > 256 or
-      (m.albumArtUrl ~= "" and not m.albumArtUrl:match("^http://%d+%.%d+%.%d+%.%d+:%d+/v1/artwork/cover%.jpg$") and
-       not m.albumArtUrl:match("^http://%d+%.%d+%.%d+%.%d+:%d+/v1/artwork/%x+$"))) then return false end
   if type(a.available) ~= "boolean" or type(a.volume) ~= "number" or a.volume < 0 or
       a.volume > 100 or a.volume % 1 ~= 0 or type(a.muted) ~= "boolean" then return false end
   if type(m.available) ~= "boolean" or not ({playing=true, paused=true, stopped=true})[m.playback] then return false end

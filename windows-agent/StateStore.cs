@@ -4,7 +4,7 @@ public record AudioState(bool Available = false, int Volume = 0, bool Muted = fa
 public record MediaState(bool Available = false, string Playback = "stopped",
     string Title = "", string Artist = "", string Source = "",
     bool CanPlay = false, bool CanPause = false, bool CanNext = false,
-    bool CanPrevious = false, bool CanToggle = false, string Album = "", string AlbumArtUrl = "");
+    bool CanPrevious = false, bool CanToggle = false, string Album = "");
 public record Snapshot(string DeviceId, string Epoch, long Revision, AudioState Audio, MediaState Media);
 
 // Each response is a complete immutable snapshot. The lock closes the gap between

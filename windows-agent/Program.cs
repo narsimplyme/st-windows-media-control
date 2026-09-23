@@ -37,10 +37,7 @@ builder.WebHost.ConfigureKestrel(server =>
 });
 var pairingSession = new PairingSession();
 var state = new StateStore(config.DeviceId);
-var artwork = new ArtworkStore(config);
-var lanAccess = new LanAccess(config.BindAddress);
 builder.Services.AddSingleton(state);
-builder.Services.AddSingleton(artwork);
 builder.Services.AddSingleton<AudioController>();
 builder.Services.AddSingleton<MediaController>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AudioController>());
@@ -57,25 +54,6 @@ app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.CacheControl = "no-store";
     var remote = ctx.Connection.RemoteIpAddress?.MapToIPv4();
-    if (ctx.Request.Path.StartsWithSegments("/v1/artwork"))
-    {
-        // Diagnose mobile image loading without recording image keys, tokens,
-        // client addresses, headers or song metadata.
-        ctx.Response.OnCompleted(() =>
-        {
-            app.Logger.LogInformation("Artwork response: HTTP {Status}, {Bytes} bytes",
-                ctx.Response.StatusCode, ctx.Response.ContentLength ?? 0);
-            return Task.CompletedTask;
-        });
-        // Phone image loaders cannot supply the bearer header. This isolated
-        // read-only route allows the bound interface's LAN plus loopback. The
-        // fixed cover.jpg endpoint never exposes the control credential.
-        if (!lanAccess.AllowsArtwork(remote))
-        { ctx.Response.StatusCode = 403; return; }
-        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
-        await next(ctx);
-        return;
-    }
     if (remote is null || (!IPAddress.IsLoopback(remote) && remote.ToString() != config.HubAddress))
     { ctx.Response.StatusCode = 403; return; }
     if (ctx.Request.Path == "/v1/pair" && HttpMethods.IsPost(ctx.Request.Method))
@@ -104,11 +82,6 @@ app.MapPost("/v1/pair", async (HttpContext ctx) =>
     }
 });
 app.MapGet("/v1/state", () => state.Read());
-app.MapGet("/v1/artwork/{key}", (string key) =>
-{
-    var image = artwork.Get(key);
-    return image is null ? Results.NotFound() : Results.File(image.Bytes, image.ContentType);
-});
 app.MapGet("/v1/events", async (string? epoch, long? after, HttpContext ctx) =>
 {
     using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, app.Lifetime.ApplicationStopping);

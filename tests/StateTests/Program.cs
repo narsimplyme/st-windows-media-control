@@ -69,7 +69,7 @@ try
     Check(reset == AgentConfig.Load(path), "regenerated configuration is saved before activation");
     Check(reset.DeviceId != beforeReset.DeviceId && reset.Token != beforeReset.Token, "regeneration replaces both identity and secret");
     Check(reset with { DeviceId = beforeReset.DeviceId, Token = beforeReset.Token, FirewallRuleId = beforeReset.FirewallRuleId } == beforeReset,
-        "regeneration preserves network and artwork settings");
+        "regeneration preserves network settings");
     Check(reset.FirewallRuleId == beforeReset.DeviceId, "existing firewall rule remains addressable after identity reset");
     Check(new FileInfo(path).GetAccessControl().GetSecurityDescriptorSddlForm(System.Security.AccessControl.AccessControlSections.Access) == aclBefore,
         "atomic replacement retains configuration access permissions");
@@ -80,36 +80,6 @@ try
 }
 finally { File.Delete(path); }
 Console.WriteLine($"{checks} checks passed");
-var artConfig = new AgentConfig(Guid.NewGuid().ToString(), AgentConfig.NewToken());
-var artwork = new ArtworkStore(artConfig);
-var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=");
-var url = artwork.Set(png);
-var key = url.Split('/')[^1];
-Check(key == "cover.jpg" && !url.Contains(artConfig.Token), "fixed artwork URL contains no control credential");
-Check(artwork.Get(key)?.Bytes.Take(3).SequenceEqual(new byte[] {255,216,255}) == true && artwork.Get(key)?.ContentType == "image/jpeg", "PNG converted to actual JPEG with matching MIME");
-using (var decoded = System.Drawing.Image.FromStream(new MemoryStream(artwork.Get(key)!.Bytes)))
-    Check(decoded.Width == 1 && decoded.Height == 1, "converted JPEG decodes successfully");
-var jpeg = artwork.Get(key)!.Bytes;
-Check(artwork.Set(jpeg) == url, "JPEG input uses same fixed URL");
-Check(artwork.Set(new byte[] {255,216,255,0}) == "" && artwork.Get(key) is null, "corrupt raster clears current artwork");
-artwork.Set(png);
-Check(artwork.Set(png) == url, "identical artwork keeps URL stable");
-Check(artwork.Get(new string('0', 32)) is null, "wrong artwork key rejected");
-Check(artwork.Set(new byte[ArtworkStore.MaxBytes + 1]) == "" && artwork.Get(key) is null, "oversized art rejected and old image revoked");
-Check(artwork.Set(System.Text.Encoding.UTF8.GetBytes("<svg/>")) == "", "active/non-raster image rejected");
-url = artwork.Set(png);
-artwork.Clear();
-Check(artwork.Get(url.Split('/')[^1]) is null, "session clear revokes URL");
-Check(new ArtworkStore(artConfig with { ArtworkEnabled = false }).Set(png) == "", "artwork can be disabled explicitly");
-System.Net.IPAddress IP(string value) => System.Net.IPAddress.Parse(value);
-Check(LanAccess.SameSubnet(IP("192.168.50.170"), IP("192.168.50.23"), IP("255.255.255.0")), "any same-LAN phone allowed without registration");
-Check(!LanAccess.SameSubnet(IP("192.168.50.170"), IP("192.168.51.23"), IP("255.255.255.0")), "different private subnet rejected");
-Check(LanAccess.SameSubnet(IP("10.1.2.3"), IP("10.1.3.4"), IP("255.255.254.0")), "actual subnet mask used instead of hard-coded /24");
-Check(!LanAccess.SameSubnet(IP("192.168.50.170"), IP("8.8.8.8"), IP("255.255.255.0")), "internet source rejected");
-Check(!LanAccess.SameSubnet(IP("192.168.50.170"), IP("192.168.50.23"), IP("0.0.0.0")), "unknown mask fails closed");
-Check(!LanAccess.SameSubnet(IP("192.168.50.170"), IP("::1"), IP("255.255.255.0")), "IPv6 rejected on IPv4 policy");
-Console.WriteLine($"{checks} total checks passed");
-
 var pairingClock = new PairingClock();
 var shortPairing = new PairingSession(pairingClock);
 Check(shortPairing.Exchange("1234567890") == 401, "no pairing accepted before user opens pairing window");
