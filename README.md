@@ -68,23 +68,4 @@ V1 uses HTTP bearer authentication, not TLS. The token and media metadata are vi
 
 MIT licensed. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md). Contributions should keep volume synchronization reliable and avoid adding PC power-management features.
 
-## Project name and upgrades
-
-ST Windows Media Control was previously called ST MediaBridge. The public app,
-tray, driver and documentation use the new name. Existing device labels can be
-renamed in SmartThings; user-customized labels are not overwritten.
-
-For in-place upgrades, the executable/project name `STMediaBridge.Agent`, C#
-namespace, `%LOCALAPPDATA%\STMediaBridge` configuration directory, scheduled task
-`ST MediaBridge-<SID>`, firewall rule IDs, Edge package key and profile/network IDs
-remain stable. Renaming these is not required to use the new product name and
-would otherwise risk duplicate devices or loss of saved pairing. No re-pairing
-is required solely for this name change.
-
-Suggested public repository name: `st-windows-media-control`.
-
-## Development
-
-Maintained by [narsimplyme](https://github.com/narsimplyme).
-Developed with assistance from OpenAI Codex. AI assistance is acknowledged here;
-GitHub commit authorship remains with the human maintainer.
+Developed using OpenAI Codex.
