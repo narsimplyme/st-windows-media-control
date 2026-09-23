@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -31,32 +33,47 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
     public static void Create(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write);
+        using var file = CreatePrivateFile(path);
         JsonSerializer.Serialize(file, new AgentConfig(Guid.NewGuid().ToString(), NewToken()), Json);
     }
-    // Replace atomically on the same volume, retaining the destination ACL.
+    // Replace atomically on the same volume with a private destination ACL.
     // The host restarts after this returns, dropping old authenticated requests.
     public static AgentConfig RegenerateIdentity(string path)
     {
         var previous = Load(path);
         var next = Validate(previous with { DeviceId = Guid.NewGuid().ToString(), Token = NewToken(),
             FirewallRuleId = previous.FirewallRuleId ?? previous.DeviceId });
+        ReplacePrivate(path, next);
+        return next;
+    }
+    private static void ReplacePrivate(string path, AgentConfig next)
+    {
+        new FileInfo(path).SetAccessControl(PrivateSecurity());
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
-            // Restrict the staging file before writing any credentials.
-            using (File.Create(temporary)) { }
-            if (OperatingSystem.IsWindows())
-                new FileInfo(temporary).SetAccessControl(new FileInfo(path).GetAccessControl());
-            using (var stream = new FileStream(temporary, FileMode.Open, FileAccess.Write))
+            using (var stream = CreatePrivateFile(temporary))
             {
                 JsonSerializer.Serialize(stream, next, Json);
                 stream.Flush(true);
             }
             File.Replace(temporary, path, null);
-            return next;
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+    private static FileSecurity PrivateSecurity()
+    {
+        var security = new FileSecurity();
+        security.SetAccessRuleProtection(true, false);
+        security.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.FullControl, AccessControlType.Allow));
+        security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), FileSystemRights.FullControl, AccessControlType.Allow));
+        return security;
+    }
+    private static FileStream CreatePrivateFile(string path)
+    {
+        // Apply the DACL at file creation, before any token bytes are written.
+        return new FileInfo(path).Create(FileMode.CreateNew, FileSystemRights.Read | FileSystemRights.Write,
+            FileShare.None, 4096, FileOptions.None, PrivateSecurity());
     }
     public static string NewToken()
     {
@@ -66,13 +83,13 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
         return token;
     }
     // Explicit migration/rotation: preserve the PC identity and network settings,
-    // generate a fresh secret (never truncate), and retain the file's existing ACL.
+    // generate a fresh secret (never truncate), and enforce a private file ACL.
     // Stop the running agent first; it retains its old token until restarted.
     public static void RotateToken(string path)
     {
         var previous = JsonSerializer.Deserialize<AgentConfig>(File.ReadAllText(path), Json)
             ?? throw new InvalidDataException("Missing configuration");
         var next = Validate(previous with { Token = NewToken() });
-        File.WriteAllText(path, JsonSerializer.Serialize(next, Json));
+        ReplacePrivate(path, next);
     }
 }

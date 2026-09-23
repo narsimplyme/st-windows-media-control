@@ -51,7 +51,7 @@ Existing internal credentials are retained during upgrade. If reconnection is ne
 ```powershell
 dotnet build windows-agent/STMediaBridge.Agent.csproj
 dotnet run --project tests/StateTests/StateTests.csproj
-python -m pip install lupa==2.6 PyYAML==6.0.2
+python -m pip install lupa==2.8 PyYAML==6.0.2
 python tests/check_edge.py
 python tests/http_smoke.py windows-agent/bin/Debug/net8.0-windows10.0.19041.0/STMediaBridge.Agent.dll
 ```

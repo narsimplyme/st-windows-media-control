@@ -22,6 +22,15 @@ $taskName = 'ST MediaBridge-' + $identity.User.Value
 $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 $startupWasDisabled = $existingTask -and -not $existingTask.Settings.Enabled
 $runEntry = Get-ItemPropertyValue -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'ST Windows Media Control' -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
+# Protect the containing directory before copying executables or writing secrets.
+$rootAcl = New-Object System.Security.AccessControl.DirectorySecurity
+$rootAcl.SetAccessRuleProtection($true, $false)
+$inherit = [System.Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
+foreach ($sid in @($identity.User, [System.Security.Principal.SecurityIdentifier]'S-1-5-18')) {
+    $rootAcl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl', $inherit, 'None', 'Allow')))
+}
+Set-Acl -LiteralPath $installRoot -AclObject $rootAcl
 New-Item -ItemType Directory -Path $bin -Force | Out-Null
 # Preserve identity and valid current tokens. Stop only this user's named task.
 $installedExe = Join-Path $bin 'STMediaBridge.Agent.exe'
@@ -88,13 +97,14 @@ $config | Add-Member -NotePropertyName port -NotePropertyValue $Port -Force
 # Remove obsolete image-serving preferences.
 $config.PSObject.Properties.Remove('artworkClients')
 $config.PSObject.Properties.Remove('artworkEnabled')
-$config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
 # Remove inherited access from the secret file; retain user and LocalSystem.
 $acl = New-Object System.Security.AccessControl.FileSecurity
 $acl.SetAccessRuleProtection($true, $false)
 $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule($identity.User, 'FullControl', 'Allow')))
 $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule([System.Security.Principal.SecurityIdentifier]'S-1-5-18', 'FullControl', 'Allow')))
+if (-not (Test-Path -LiteralPath $configPath)) { New-Item -ItemType File -Path $configPath | Out-Null }
 Set-Acl -LiteralPath $configPath -AclObject $acl
+$config | ConvertTo-Json | Set-Content -LiteralPath $configPath -Encoding UTF8
 $exe = Join-Path $bin 'STMediaBridge.Agent.exe'
 $action = New-ScheduledTaskAction -Execute $exe -Argument ('--config "' + $configPath + '"') -WorkingDirectory $bin
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $identity.Name

@@ -63,3 +63,10 @@ for _, value in ipairs({0, -1, 999999999, 10000000000, 1234567890.5, math.huge, 
   assert(not p.configuration(short), "invalid numeric code rejected")
 end
 print("PASS numeric keyboard preference normalization, bounds and saved-pairing compatibility")
+
+for _, bad in ipairs({{}, {deviceId="test",epoch=string.rep("a",32),revision=1},
+  {deviceId="test",epoch=string.rep("a",32),revision=1,audio=false,media="bad"}}) do
+  local ok, valid = pcall(p.valid,bad,"test")
+  assert(ok and not valid, "malformed snapshots must be rejected without terminating the worker")
+end
+print("PASS malformed snapshot types fail closed without exceptions")

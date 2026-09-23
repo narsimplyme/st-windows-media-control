@@ -39,6 +39,12 @@ try
 {
     AgentConfig.Create(path);
     var c = AgentConfig.Load(path);
+    var privateAcl = new FileInfo(path).GetAccessControl();
+    Check(privateAcl.AreAccessRulesProtected, "new token file disables inherited permissions at creation");
+    var allowedSids = new[] { System.Security.Principal.WindowsIdentity.GetCurrent().User!.Value, "S-1-5-18" };
+    Check(privateAcl.GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier))
+        .Cast<System.Security.AccessControl.FileSystemAccessRule>().All(rule => allowedSids.Contains(rule.IdentityReference.Value)),
+        "token file grants access only to current user and LocalSystem");
     Check(c.BindAddress == "127.0.0.1" && c.Token.Length == 32, "new config is loopback with random token");
     try { AgentConfig.Create(path); throw new Exception("overwritten"); }
     catch (IOException) { Check(true, "init cannot overwrite existing identity"); }

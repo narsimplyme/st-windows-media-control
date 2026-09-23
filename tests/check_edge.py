@@ -1,4 +1,4 @@
-"""Local Lua syntax/protocol checks. pip install lupa==2.6 PyYAML==6.0.2"""
+"""Local Lua syntax/protocol checks. pip install lupa==2.8 PyYAML==6.0.2"""
 from pathlib import Path
 import sys
 
@@ -7,7 +7,7 @@ sys.path.insert(0, str(ROOT / ".tools/python"))
 from lupa.lua54 import LuaRuntime
 import yaml
 
-lua = LuaRuntime(unpack_returned_tuples=True)
+lua = LuaRuntime(unpack_returned_tuples=True, register_builtins=False, register_eval=False)
 lua.execute("package.path = ... .. '/?.lua;' .. package.path", (ROOT / "edge-driver/src").as_posix())
 for path in (ROOT / "edge-driver/src").glob("*.lua"):
     lua.execute("assert(load(...))", path.read_text(encoding="utf-8"))
