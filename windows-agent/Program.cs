@@ -45,7 +45,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<MediaController>()
 if (!args.Contains("--no-tray"))
     builder.Services.AddSingleton<IHostedService>(sp => new TrayService(config, state,
         sp.GetRequiredService<IHostApplicationLifetime>(), sp.GetRequiredService<ILogger<TrayService>>(),
-        regenerate: () => replacement = AgentConfig.RegenerateIdentity(configPath), showPairing: showPairing, session: pairingSession));
+        regenerate: () => replacement = AgentConfig.RegenerateIdentity(configPath), showPairing: showPairing, session: pairingSession,
+        startup: new StartupSettings(Path.Combine(AppContext.BaseDirectory, "STMediaBridge.Agent.exe"), configPath)));
 var app = builder.Build();
 // AgentConfig enforces the 32-hex-character contract. Compare the complete
 // credential in constant time; never truncate or normalize a supplied token.

@@ -7,6 +7,27 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Isolated registry key: never modify the real Run key or installed task.
+        var testKey = @"Software\STWindowsMediaControl.Tests\" + Guid.NewGuid().ToString("N");
+        try
+        {
+            var executable = Path.GetFullPath("artifacts/Test App/Agent.exe");
+            var configPath = Path.GetFullPath("artifacts/Test App/agent.json");
+            var startup = new StartupSettings(executable, configPath, testKey, taskName: "", approvedKey: null);
+            Check(!startup.Enabled, "startup defaults off without registration");
+            startup.SetEnabled(true);
+            Check(startup.Enabled, "startup can be enabled");
+            using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(testKey))
+                Check((string?)key!.GetValue("ST Windows Media Control") == $"\"{executable}\" --config \"{configPath}\"",
+                    "startup quotes executable and config paths containing spaces");
+            startup.SetEnabled(true);
+            Check(startup.Enabled, "repeated enable remains one registration");
+            startup.SetEnabled(false);
+            Check(!startup.Enabled, "startup can be disabled");
+            startup.SetEnabled(false);
+            Check(!startup.Enabled, "repeated disable is harmless");
+        }
+        finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(testKey, false); }
         // Dummy credentials only. Never load installed configuration or touch clipboard.
         var config = new AgentConfig("12345678-1234-1234-1234-123456789abc", new string('a', 32), "192.168.50.170");
         var state = new StateStore(config.DeviceId);

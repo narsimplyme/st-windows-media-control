@@ -19,6 +19,9 @@ $bin = Join-Path $installRoot 'bin'
 $configPath = Join-Path $installRoot 'agent.json'
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $taskName = 'ST MediaBridge-' + $identity.User.Value
+$existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+$startupWasDisabled = $existingTask -and -not $existingTask.Settings.Enabled
+$runEntry = Get-ItemPropertyValue -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'ST Windows Media Control' -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $bin -Force | Out-Null
 # Preserve identity and valid current tokens. Stop only this user's named task.
 $installedExe = Join-Path $bin 'STMediaBridge.Agent.exe'
@@ -99,6 +102,9 @@ $principal = New-ScheduledTaskPrincipal -UserId $identity.Name -LogonType Intera
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
     -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $taskName -Description 'ST Windows Media Control — Windows media and volume control from SmartThings' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-Start-ScheduledTask -TaskName $taskName
+if ($runEntry -or $startupWasDisabled) {
+    Disable-ScheduledTask -TaskName $taskName | Out-Null
+    Start-Process -FilePath $exe -ArgumentList ('--config "' + $configPath + '"') -WorkingDirectory $bin -WindowStyle Hidden
+} else { Start-ScheduledTask -TaskName $taskName }
 Write-Host "Installed for $($identity.Name). Configuration: $configPath"
 Write-Host 'Next: run Set-Firewall.ps1 from an elevated PowerShell, then pair in SmartThings.'

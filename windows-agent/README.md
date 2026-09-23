@@ -107,3 +107,14 @@ internal identity and secret, restarts the companion host, and shows a new
 PC address/port and firewall configuration are retained. Cancel changes nothing.
 Use **New code** inside Pairing information when only the temporary code expired;
 use **Reset pairing** when the existing connection should be revoked.
+
+## Automatic startup
+
+Right-click the tray icon and toggle **Windows 로그인 시 자동 실행 / Start automatically at Windows sign-in**.
+The checkmark reflects the current setting. Enabling registers this user's app
+under Windows Startup apps (HKCU Run); disabling removes that registration.
+Changing the option disables the installer's existing login task to avoid two
+startup entries. The app keeps running when this option is disabled; it only
+changes behavior at the next sign-in. Keep the executable in its installed location.
+Reinstalling preserves a disabled startup setting. Uninstall removes the Run entry
+and the existing scheduled task. No release has been published yet.

@@ -9,7 +9,7 @@ namespace STMediaBridge;
 // WinForms owns a separate STA thread; native media observers and HTTP remain
 // on the host's background threads. The icon appears only after the server starts.
 public sealed class TrayService(AgentConfig config, StateStore state,
-    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null) : IHostedService, IDisposable
+    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null) : IHostedService, IDisposable
 {
     private static int uiInitialized;
     private readonly object gate = new();
@@ -42,7 +42,7 @@ public sealed class TrayService(AgentConfig config, StateStore state,
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
             }
-            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session);
+            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup);
             log.LogInformation("Tray icon ready");
             using var registration = stopping.Token.Register(context.RequestClose);
             if (!stopping.IsCancellationRequested) Application.Run(context);
@@ -75,7 +75,7 @@ internal sealed class TrayContext : ApplicationContext
     internal static string T(string korean, string english) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? korean : english;
 
-    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null)
+    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null)
     {
         session ??= new PairingSession();
         _ = dispatcher.Handle; // Created on STA before cancellation can post to it.
@@ -106,6 +106,32 @@ internal sealed class TrayContext : ApplicationContext
                         "Could not regenerate. Check configuration file permissions. The existing connection remains active."),
                         ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            };
+        }
+        if (startup is not null)
+        {
+            var autoStart = new ToolStripMenuItem(T("Windows 로그인 시 자동 실행", "Start automatically at Windows sign-in"));
+            menu.Items.Add(autoStart);
+            void RefreshStartup()
+            {
+                try { autoStart.Checked = startup.Enabled; autoStart.Enabled = true; autoStart.ToolTipText = ""; }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or System.Security.SecurityException)
+                {
+                    autoStart.Enabled = false;
+                    autoStart.ToolTipText = T("자동 실행 설정을 읽을 수 없습니다.", "Unable to read startup settings.");
+                }
+            }
+            menu.Opening += (_, _) => RefreshStartup();
+            autoStart.Click += (_, _) =>
+            {
+                try { startup.SetEnabled(!startup.Enabled); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or System.Security.SecurityException)
+                {
+                    MessageBox.Show(T("자동 실행 설정을 변경하지 못했습니다. 시작프로그램 또는 예약 작업의 접근 권한을 확인하세요.",
+                        "Unable to change startup settings. Check access to startup settings or the scheduled task."),
+                        ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                RefreshStartup();
             };
         }
         menu.Items.Add(new ToolStripSeparator());
