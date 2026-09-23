@@ -86,6 +86,34 @@ try
 }
 finally { File.Delete(path); }
 Console.WriteLine($"{checks} checks passed");
+var tlsDirectory = Path.Combine(Path.GetTempPath(), "st-wmc-tls-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(tlsDirectory);
+try
+{
+    var tlsConfig = Path.Combine(tlsDirectory, "agent.json");
+    AgentConfig.Create(tlsConfig);
+    TlsIdentity.Enable(tlsConfig);
+    Check(AgentConfig.Load(tlsConfig).TlsEnabled, "TLS mode persists in configuration");
+    string thumbprint;
+    using (var cert = TlsIdentity.Load(tlsConfig))
+    {
+        Check(cert.HasPrivateKey, "TLS identity contains private key");
+        thumbprint = cert.Thumbprint;
+    }
+    TlsIdentity.Enable(tlsConfig);
+    using (var cert = TlsIdentity.Load(tlsConfig))
+        Check(cert.Thumbprint == thumbprint, "TLS provisioning never replaces existing trust");
+    var keyFile = new FileInfo(Path.Combine(tlsDirectory, "server-tls.pfx"));
+    Check(keyFile.GetAccessControl().AreAccessRulesProtected, "TLS private key has protected ACL from creation");
+    AgentConfig.RegenerateIdentity(tlsConfig);
+    Check(AgentConfig.Load(tlsConfig).TlsEnabled, "pairing reset preserves HTTPS requirement");
+    using (var cert = TlsIdentity.Load(tlsConfig))
+        Check(cert.Thumbprint == thumbprint, "pairing reset preserves PC certificate");
+    keyFile.Delete();
+    try { TlsIdentity.Enable(tlsConfig); throw new Exception("Missing TLS identity was silently regenerated"); }
+    catch (InvalidDataException) { Check(true, "missing established TLS identity fails closed"); }
+}
+finally { Directory.Delete(tlsDirectory, true); }
 var pairingClock = new PairingClock();
 var shortPairing = new PairingSession(pairingClock);
 Check(shortPairing.Exchange("1234567890") == 401, "no pairing accepted before user opens pairing window");

@@ -12,6 +12,7 @@ try
 {
     if (args.Contains("--init")) { AgentConfig.Create(configPath); return; }
     if (args.Contains("--rotate-token")) { AgentConfig.RotateToken(configPath); return; }
+    if (args.Contains("--enable-https")) { TlsIdentity.Enable(configPath); return; }
     config = AgentConfig.Load(configPath);
 }
 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException)
@@ -25,12 +26,20 @@ bool showPairing = false;
 while (true)
 {
 AgentConfig? replacement = null;
+using var tlsIdentity = config.TlsEnabled ? TlsIdentity.Load(configPath) : null;
 var builder = WebApplication.CreateSlimBuilder();
 builder.Logging.ClearProviders();
 builder.Logging.AddProvider(new FileLog(Path.Combine(Path.GetDirectoryName(configPath)!, "logs")));
 builder.WebHost.ConfigureKestrel(server =>
 {
-    server.Listen(IPAddress.Parse(config.BindAddress), config.Port);
+    server.Listen(IPAddress.Parse(config.BindAddress), config.Port, listener =>
+    {
+        if (tlsIdentity is not null) listener.UseHttps(tls =>
+        {
+            tls.ServerCertificate = tlsIdentity;
+            tls.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13;
+        });
+    });
     server.Limits.MaxRequestBodySize = 1024;
     server.Limits.MaxConcurrentConnections = 16;
     server.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(5);

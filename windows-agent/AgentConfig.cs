@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace STMediaBridge;
 
-public sealed record AgentConfig(string DeviceId, string Token, string BindAddress = "127.0.0.1", int Port = 8765, string HubAddress = "", string? FirewallRuleId = null)
+public sealed record AgentConfig(string DeviceId, string Token, string BindAddress = "127.0.0.1", int Port = 8765, string HubAddress = "", string? FirewallRuleId = null, bool TlsEnabled = false)
 {
     public const int TokenBytes = 16;
     public const int TokenLength = TokenBytes * 2;
@@ -46,7 +46,7 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
         ReplacePrivate(path, next);
         return next;
     }
-    private static void ReplacePrivate(string path, AgentConfig next)
+    internal static void ReplacePrivate(string path, AgentConfig next)
     {
         new FileInfo(path).SetAccessControl(PrivateSecurity());
         var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
@@ -69,7 +69,7 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
         security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null), FileSystemRights.FullControl, AccessControlType.Allow));
         return security;
     }
-    private static FileStream CreatePrivateFile(string path)
+    internal static FileStream CreatePrivateFile(string path)
     {
         // Apply the DACL at file creation, before any token bytes are written.
         return new FileInfo(path).Create(FileMode.CreateNew, FileSystemRights.Read | FileSystemRights.Write,

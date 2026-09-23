@@ -6,3 +6,6 @@ agent.json
 *.log
 *.zip
 .vs/
+*.pfx
+*.p12
+server-tls.pem

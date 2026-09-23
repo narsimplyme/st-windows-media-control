@@ -7,6 +7,7 @@ import concurrent.futures
 import json
 import secrets
 import socket
+import ssl
 import subprocess
 import tempfile
 import time
@@ -18,6 +19,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument("agent", type=Path)
 parser.add_argument("--exercise-audio", action="store_true")
+parser.add_argument("--https", action="store_true")
 parser.add_argument("--audio-probe", type=Path, help="Independent Core Audio test utility DLL")
 args = parser.parse_args()
 def probe(*arguments):
@@ -27,13 +29,14 @@ with socket.socket() as s:
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
 token = secrets.token_hex(16)
-base = f"http://127.0.0.1:{port}"
+base = f"{'https' if args.https else 'http'}://127.0.0.1:{port}"
+tls_context = None
 
 def request(path, body=None, auth=token):
     req = urllib.request.Request(base + path, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Authorization": "Bearer " + auth, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=26) as response:
+        with urllib.request.urlopen(req, timeout=26, context=tls_context) as response:
             return response.status, json.load(response)
     except urllib.error.HTTPError as e:
         return e.code, None
@@ -42,6 +45,9 @@ with tempfile.TemporaryDirectory(prefix="st-mediabridge-") as directory:
     config = Path(directory) / "agent.json"
     config.write_text(json.dumps(dict(deviceId=str(uuid.uuid4()), token=token, bindAddress="127.0.0.1", port=port)))
     launch = [str(args.agent.resolve())] if args.agent.suffix.lower() == ".exe" else ["dotnet", str(args.agent.resolve())]
+    if args.https:
+        subprocess.run([*launch, "--enable-https", "--config", str(config)], check=True)
+        tls_context = ssl.create_default_context(cafile=str(Path(directory) / "server-tls.pem"))
     process = subprocess.Popen([*launch, "--no-tray", "--config", str(config)],
                                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     original = None
@@ -58,6 +64,18 @@ with tempfile.TemporaryDirectory(prefix="st-mediabridge-") as directory:
         else:
             raise RuntimeError("Agent did not start")
         assert status == 200
+        if args.https:
+            try:
+                urllib.request.urlopen(base + "/v1/state", timeout=5)
+                raise AssertionError("Untrusted TLS accepted")
+            except urllib.error.URLError:
+                pass
+            try:
+                urllib.request.urlopen(base.replace("https:", "http:") + "/v1/state", timeout=5)
+                raise AssertionError("Plain HTTP accepted")
+            except (OSError, urllib.error.URLError):
+                pass
+            print("PASS HTTPS verified trust, unknown CA rejection and no plaintext fallback")
         assert request("/v1/pair", {"code": "1234567890"}, auth="")[0] == 401
         for _ in range(4):
             assert request("/v1/pair", {"code": "0000000000"}, auth="")[0] == 401

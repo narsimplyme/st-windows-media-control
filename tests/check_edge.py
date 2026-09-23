@@ -15,6 +15,7 @@ for path in (ROOT / "edge-driver/src").glob("*.lua"):
 lua.execute((ROOT / "tests/edge_protocol_test.lua").read_text(encoding="utf-8"))
 lua.globals().TEST_ROOT = ROOT.as_posix()
 lua.execute((ROOT / "tests/edge_driver_test.lua").read_text(encoding="utf-8"))
+lua.execute((ROOT / "tests/edge_tls_client_test.lua").read_text(encoding="utf-8"))
 for path in (ROOT / "edge-driver").rglob("*.yml"):
     yaml.safe_load(path.read_text(encoding="utf-8"))
 profile = yaml.safe_load((ROOT / "edge-driver/profiles/media-bridge.yml").read_text(encoding="utf-8"))

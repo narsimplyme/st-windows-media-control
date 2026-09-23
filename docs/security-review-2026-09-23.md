@@ -8,6 +8,11 @@ Windows, the native audio libraries, or the mobile app.
 
 ## Findings and disposition
 
+Follow-up: the controlled HTTPS deployment and live hub validation are recorded
+in [https-experiment.md](https-experiment.md). The tested installation now uses
+verified TLS with a locally provisioned PC certificate. Generic enrollment is
+still unfinished; the table below records the original audit baseline.
+
 | Severity / scope | Finding | Disposition |
 | --- | --- | --- |
 | High under LAN interception | Plain HTTP carries the reusable bearer token, pairing code and exchange response. A network observer/active intermediary can obtain credentials; IP allowlisting does not provide transport authenticity or confidentiality. | Still present. Broad/untrusted-network deployment should wait for authenticated encryption or TLS with verified peer identity. Current scope is trusted private LAN only. |
