@@ -145,3 +145,16 @@ startup entries. The app keeps running when this option is disabled; it only
 changes behavior at the next sign-in. Keep the executable in its installed location.
 Reinstalling preserves a disabled startup setting. Uninstall removes the Run entry
 and the existing scheduled task. No release has been published yet.
+
+### Smaller download with separately installed runtimes
+
+The optional Compact profile produces a framework-dependent single EXE (about
+24.8 MiB with the current SDK, versus 85.3 MiB for Standalone). It requires x64
+.NET 8 Windows Desktop Runtime and ASP.NET Core Runtime on the user's PC.
+These runtimes are not included with Windows by default. This reduces the app
+download, not the total runtime footprint. Standalone remains the default for
+users who want to run the EXE without installing prerequisites.
+
+```powershell
+dotnet publish windows-agent/STMediaBridge.Agent.csproj -p:PublishProfile=Compact -p:RestoreLockedMode=true -o artifacts/compact
+```
