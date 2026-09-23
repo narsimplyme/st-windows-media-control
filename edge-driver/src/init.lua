@@ -26,7 +26,7 @@ local function emit(device, s, old)
   if not old or m.title ~= old.media.title or m.artist ~= old.media.artist or m.source ~= old.media.source or
       m.album ~= old.media.album then
     device:emit_event(caps.audioTrackData.audioTrackData({title=m.title, artist=m.artist, mediaSource=m.source,
-      album=m.album or "", albumArtUrl=""}))
+      album=m.album or ""}))
   end
   -- Lack of an output endpoint leaves last known volume intact, not a false zero.
   if a.available then device:online() else device:offline() end
@@ -92,7 +92,7 @@ local function restart(_, device)
             device:emit_event(caps.mediaPlayback.supportedPlaybackCommands({}))
             device:emit_event(caps.mediaPlayback.playbackStatus("paused"))
             device:emit_event(caps.audioTrackData.audioTrackData({title=first, artist=second,
-              mediaSource="설정에서 인증서 승인 / Approve in Settings", album="", albumArtUrl=""}))
+              mediaSource="설정에서 인증서 승인 / Approve in Settings", album=""}))
             device:online()
           else
             device:offline()

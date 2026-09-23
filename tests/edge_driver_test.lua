@@ -28,7 +28,13 @@ device.metadataRequests = 0
 function device:get_field(key) return self.fields[key] end
 function device:set_field(key, value) self.fields[key] = value end
 function device:try_update_metadata(metadata) self.metadata = metadata; self.metadataRequests = self.metadataRequests + 1 end
-function device:emit_event(event) self.events[#self.events+1]=event end
+function device:emit_event(event)
+  if event.capability == "audioTrackData" then
+    assert(event.value.albumArtUrl == nil or event.value.albumArtUrl:match("^https?://"),
+      "optional artwork URI must not be an empty string, including certificate prompts")
+  end
+  self.events[#self.events+1]=event
+end
 function device:online() self.connected=true end
 function device:offline() self.connected=false end
 local driver = {devices={}, creates=0}
@@ -103,10 +109,10 @@ local withArt=snapshot(2,12,string.rep("b",32))
 withArt.media.album="Album"
 withArt.media.albumArtUrl="http://192.168.1.20:8765/v1/artwork/" .. string.rep("c",32)
 step(worker,withArt)
-assert(device.events[#device.events].value.albumArtUrl=="", "old companion artwork must not be forwarded")
+assert(device.events[#device.events].value.albumArtUrl==nil, "old companion artwork must not be forwarded")
 step(worker)
 step(worker,snapshot(3,12,string.rep("b",32)))
-assert(device.events[#device.events].value.albumArtUrl=="", "absent art must clear prior URL")
+assert(device.events[#device.events].value.albumArtUrl==nil, "absent artwork must omit the optional URI field")
 step(worker) -- old worker is now waiting on a request
 captured.lifecycle_handlers.infoChanged(driver,device)
 count=#device.events
@@ -183,3 +189,4 @@ captured.lifecycle_handlers.infoChanged(driver,device)
 assert(device:get_field("tlsTrust") == nil, "explicit reset clears trust")
 assert(step(spawned[#spawned]) == "discover")
 print("PASS certificate discovery, approval gate, persistence and explicit trust reset")
+
