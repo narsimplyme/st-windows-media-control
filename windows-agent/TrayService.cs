@@ -147,9 +147,7 @@ internal sealed class TrayContext : ApplicationContext
             using var stream = typeof(TrayContext).Assembly.GetManifestResourceStream("STMediaBridge.ThirdPartyNotices");
             if (stream is null) return;
             using var reader = new StreamReader(stream);
-            using var licenses = new Form { Text = ProductInfo.DisplayName + " — Licenses", Size = new Size(760, 560), StartPosition = FormStartPosition.CenterScreen };
-            licenses.Controls.Add(new TextBox { Multiline = true, ReadOnly = true, Dock = DockStyle.Fill,
-                ScrollBars = ScrollBars.Both, Text = reader.ReadToEnd(), Font = new Font("Segoe UI", 10) });
+            using var licenses = new LicenseForm(reader.ReadToEnd());
             licenses.ShowDialog();
         });
         var exit = menu.Items.Add(T(ProductInfo.DisplayName + " 종료", "Exit " + ProductInfo.DisplayName));
@@ -335,5 +333,38 @@ internal sealed class PairingForm : Form
     {
         if (disposing) { timer.Stop(); timer.Dispose(); }
         base.Dispose(disposing);
+    }
+}
+
+internal sealed class LicenseForm : Form
+{
+    public LicenseForm(string notices)
+    {
+        Text = ProductInfo.DisplayName + " — " + TrayContext.T("오픈소스 라이선스", "Open-source licenses");
+        ClientSize = new Size(780, 620);
+        MinimumSize = new Size(540, 400);
+        StartPosition = FormStartPosition.CenterScreen;
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Padding = new Padding(20);
+        var content = new RichTextBox
+        {
+            Dock = DockStyle.Fill, ReadOnly = true, BorderStyle = BorderStyle.None,
+            BackColor = SystemColors.Window, Font = new Font("Segoe UI", 10),
+            WordWrap = true, ScrollBars = RichTextBoxScrollBars.Vertical, DetectUrls = false,
+            AccessibleName = TrayContext.T("오픈소스 라이선스 내용", "Open-source license text")
+        };
+        Controls.Add(content);
+        BackColor = SystemColors.Window;
+        using var headingFont = new Font(content.Font, FontStyle.Bold);
+        foreach (var line in notices.ReplaceLineEndings("\n").Split('\n'))
+        {
+            var heading = line.StartsWith("# ") || line.StartsWith("## ");
+            var text = heading ? line.TrimStart('#', ' ') : line;
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[([^\]]+)\]\(([^)]+)\)", "$1 ($2)");
+            text = text.Replace("`", "");
+            content.SelectionFont = heading ? headingFont : content.Font;
+            content.AppendText(text + Environment.NewLine);
+        }
+        content.Select(0, 0);
     }
 }

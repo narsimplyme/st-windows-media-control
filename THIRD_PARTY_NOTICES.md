@@ -1,6 +1,8 @@
-# Third-party components and research
+# Open-source licenses and third-party notices
 
-The Windows agent uses [NAudio.Wasapi and NAudio.Core 2.2.1](https://github.com/naudio/NAudio/tree/v2.2.1), distributed under the MIT license. Retain their license when distributing binaries. .NET and Windows SDK runtime components retain their respective licenses; self-contained publish includes runtime license notices.
+## Windows agent — NAudio
+
+The Windows agent uses [NAudio.Wasapi and NAudio.Core 2.2.1](https://github.com/naudio/NAudio/tree/v2.2.1), distributed under the MIT license. Retain their license when distributing binaries.
 
 NAudio license:
 
@@ -12,9 +14,19 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## Runtime components
+
+.NET and Windows SDK runtime components retain their respective licenses; self-contained publish includes runtime license notices.
+
+## SmartThings SDK and research
+
 SmartThings SDK modules are supplied by the hub, not vendored here. The Apache-2.0 Sonos and iquix Chromecast driver sources were inspected for capability and lifecycle patterns; no implementation code was copied. Source links and findings are in [architecture.md](docs/architecture.md).
 
+## Development tools
+
 Optional development tools Lupa (MIT) and PyYAML (MIT) are not part of the agent distribution.
+
+## Edge driver — SHA-256
 
 The Edge driver includes Egor Skriptunoff's `pure_lua_SHA` at commit
 `6adac177c16c3496899f69d220dfb20bc31c03df` for SHA-256 certificate fingerprints.

@@ -119,6 +119,16 @@ internal static class Program
         var instructions = controls.OfType<Label>().Single(l => l.Text.Contains("35D95694"));
         Check(instructions.Text.Contains("D3F16021") && instructions.Text.Contains("5DB293C7") && instructions.Text.Contains("899DAA59"), "pairing shows all 128 fingerprint bits for comparison");
         Check(instructions.Bottom <= form.ClientSize.Height, "certificate comparison instructions fit inside dialog");
+        using (var licenseWindow = new LicenseForm(File.ReadAllText("THIRD_PARTY_NOTICES.md")))
+        {
+            licenseWindow.ShowInTaskbar = false;
+            licenseWindow.Show();
+            Application.DoEvents();
+            using var licensePreview = new Bitmap(licenseWindow.Width, licenseWindow.Height);
+            licenseWindow.DrawToBitmap(licensePreview, new Rectangle(Point.Empty, licensePreview.Size));
+            licensePreview.Save(Path.Combine(Path.GetDirectoryName(output)!, "licenses-preview.png"));
+            licenseWindow.Hide();
+        }
         string? selected = null;
         var setup = FirstRun.Configure("unused-test-config", new[] { "192.168.1.20", "192.168.1.30" },
             (ip, enabled) => { selected = ip; Check(!enabled, "first-run autostart is an explicit opt-in"); },
