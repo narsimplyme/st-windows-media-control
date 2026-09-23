@@ -42,7 +42,7 @@ Do not combine `--install` and `--hub`; the installed CLI treats them as conflic
 
 1. Build/start the Windows companion and add its hub-restricted firewall rule.
 2. In the SmartThings app choose **Add device → Scan nearby**. The driver's discovery handler creates **ST Windows Media Control**. This is a manual pairing slot, not an automatic LAN scan.
-3. Open the device's three-dot menu → **Settings** and enter the PC IPv4 address and the **10-digit pairing code** shown in the PC tray → Pairing information. Leave the port at 8765 unless changed.
+3. Open the device's three-dot menu → **Settings** and enter the PC IPv4 address and the **8-digit pairing code** shown in the PC tray → Pairing information. Leave the port at 8765 unless changed.
 4. Rename the device, for example **ST Windows Media Control — Gaming PC**.
 5. Wait for current volume/mute state, then test the slider and an external Windows volume change.
 

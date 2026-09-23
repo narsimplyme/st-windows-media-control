@@ -96,8 +96,8 @@ internal sealed class TrayContext : ApplicationContext
             var reset = menu.Items.Add(T("페어링 초기화…", "Reset pairing…"));
             reset.Click += (_, _) =>
             {
-                if (MessageBox.Show(T("페어링을 초기화할까요?\n기존 연결은 끊어집니다. 새 10자리 코드를 SmartThings 설정에 입력하면 다시 연결됩니다.",
-                    "Reset pairing?\nThe existing connection will be disconnected. Enter the new 10-digit code in SmartThings to reconnect."),
+                if (MessageBox.Show(T("페어링을 초기화할까요?\n기존 연결은 끊어집니다. 새 8자리 코드를 SmartThings 설정에 입력하면 다시 연결됩니다.",
+                    "Reset pairing?\nThe existing connection will be disconnected. Enter the new 8-digit code in SmartThings to reconnect."),
                     ProductInfo.DisplayName, MessageBoxButtons.OKCancel, MessageBoxIcon.Warning,
                     MessageBoxDefaultButton.Button2) != DialogResult.OK) return;
                 reset.Enabled = false;
@@ -277,8 +277,8 @@ internal sealed class PairingForm : Form
         renew.Click += (_, _) => code.Text = session.Generate();
         layout.Controls.Add(renew, 1, 6);
         var help = new Label { AutoSize = true, MaximumSize = new Size(625, 0), Margin = new Padding(0, 12, 0, 12),
-            Text = certificate is null ? TrayContext.T("SmartThings 설정에 PC 주소와 10자리 페어링 코드를 입력하세요.",
-                "Enter the PC address and 10-digit pairing code in SmartThings settings.") :
+            Text = certificate is null ? TrayContext.T("SmartThings 설정에 PC 주소와 8자리 페어링 코드를 입력하세요.",
+                "Enter the PC address and 8-digit pairing code in SmartThings settings.") :
                 TrayContext.T("1. SmartThings 설정에 PC 주소와 위 코드를 입력하세요.\n2. 음악 카드의 인증서 확인값 네 묶음이 아래와 모두 같은지 비교하세요.\n3. 같을 때만 SmartThings 설정의 ‘인증서 일치 확인’을 전환하세요.\n다르면 승인하지 마세요. 연결 후 코드는 만료되어도 됩니다.\n\n인증서 확인값:\n",
                 "1. Enter the PC address and code in SmartThings settings.\n2. Compare all four certificate groups on its music card with these.\n3. Only if they match, toggle Confirm certificate in Settings.\nDo not approve a mismatch. The code may expire after pairing.\n\nCertificate verification:\n") +
                 string.Join(Environment.NewLine, TlsIdentity.Fingerprint(certificate).Split(' ').Chunk(2).Select(parts => string.Join(" ", parts))) };

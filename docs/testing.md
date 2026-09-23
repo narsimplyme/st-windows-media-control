@@ -59,7 +59,7 @@ The tray runner requires an interactive Windows desktop and writes `artifacts/tr
 ## Tray acceptance
 
 - After upgrading the companion, find its blue music-note icon (including the notification area's overflow menu). Right-click to inspect local running/audio status.
-- Open Pairing information from the menu and by double-clicking. Check the PC address, port and 10-digit code against SmartThings settings.
+- Open Pairing information from the menu and by double-clicking. Check the PC address, port and 8-digit code against SmartThings settings.
 - Confirm the large code is numeric and New code replaces it. Close the window; confirm SmartThings control continues while it is closed.
 - Choose Exit ST Windows Media Control. Confirm the icon disappears and the companion stops; restart its scheduled task and confirm control recovers with unchanged pairing.
 - Check the window at the desktop's normal DPI scaling and after moving it between monitors.
@@ -68,7 +68,7 @@ The tray runner requires an interactive Windows desktop and writes `artifacts/tr
 
 Install the agent and driver per their READMEs. Keep logs visible. Do not move to live media acceptance until these pass:
 
-1. Scan nearby twice. Exactly one ST Windows Media Control device exists. Configure its IP, port and 10-digit code; its initial slider reflects Windows.
+1. Scan nearby twice. Exactly one ST Windows Media Control device exists. Configure its IP, port and 8-digit code; its initial slider reflects Windows.
 2. Set the SmartThings slider to safe values such as 12, 25 and 40. Windows' default output master volume matches each value, without launching a player or changing mute.
 3. Use Windows Settings, a keyboard media key and (if available) a headset wheel/USB DAC knob. The SmartThings slider follows each change without pressing Refresh. Target under 2 seconds while connected; record measurements rather than assuming this SLA.
 4. Move the slider quickly and then change Windows volume. The final values converge; old responses do not jump the slider backwards.

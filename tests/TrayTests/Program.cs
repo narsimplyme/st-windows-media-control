@@ -73,8 +73,8 @@ internal static class Program
         var controls = Descendants(form).ToArray();
         var fields = controls.OfType<TextBox>().ToArray();
         Check(fields.Length == 3 && fields.All(f => f.ReadOnly), "only address, port and short code are shown");
-        var code = fields.Single(f => f.Text.Length == 10);
-        Check(code.Text.All(char.IsAsciiDigit) && !code.UseSystemPasswordChar, "ten-digit code is readable for manual entry");
+        var code = fields.Single(f => f.Text.Length == 8);
+        Check(code.Text.All(char.IsAsciiDigit) && !code.UseSystemPasswordChar, "eight-digit code is readable for manual entry");
         Check(!fields.Any(f => f.Text == config.Token || f.Text == config.DeviceId), "internal UUID and token are not user-facing");
         Check(pairingSession.Exchange(code.Text) == 200, "displayed code is active for pairing");
         Check(controls.OfType<Button>().Count() == 5, "three copy buttons, renew code and close");

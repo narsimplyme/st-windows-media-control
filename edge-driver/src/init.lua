@@ -76,7 +76,7 @@ local function restart(_, device)
   workers[device.id] = worker -- Invalidates old requests on preference changes/removal.
   device:offline()
   if not config then
-    log.info("ST Windows Media Control: enter the PC address and 10-digit pairing code in Settings")
+    log.info("ST Windows Media Control: enter the PC address and 8-digit pairing code in Settings")
     return
   end
   cosock.spawn(function()

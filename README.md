@@ -14,7 +14,7 @@ ST Windows Media Control connects a SmartThings Edge hub directly to a small Win
 - Event-driven state updates, automatic reconnect, and periodic reconciliation.
 - HTTPS LAN API with a saved PC certificate and token authentication.
 - First-run setup creates configuration and a private certificate automatically; no runtime installation is needed for the standalone EXE.
-- Pairing: enter the PC address and a 10-digit code, compare the certificate verification values once, and approve. Later connections reuse saved trust.
+- Pairing: enter the PC address and a 8-digit code, compare the certificate verification values once, and approve. Later connections reuse saved trust.
 - Console-free startup at sign-in, with a tray status icon and pairing information with copy buttons.
 
 No PC power management, remote shell, broker, or third-party bridge is included. The local control path has no external service dependency. SmartThings account, driver installation, app UI and remote access still use the SmartThings platform.
@@ -28,14 +28,14 @@ Samsung 계정 로그인 → 허브 선택 → Enroll → Available Drivers에�
 Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; a supported SmartThings Edge hub on the LAN; a signed-in Windows user. Building from source requires the SDK pinned in `global.json`; the standalone EXE includes its runtime. Use a currently supported Windows/.NET environment.
 
 1. Run the standalone Windows EXE. Select the detected PC address, choose whether to start at sign-in, and approve the firewall prompt. Developers can [build the EXE](windows-agent/README.md).
-2. [Enroll and install the matching Edge driver](edge-driver/README.md), then enter the PC address and 10-digit pairing code.
+2. [Enroll and install the matching Edge driver](edge-driver/README.md), then enter the PC address and 8-digit pairing code.
 3. Compare all four certificate groups on the PC and SmartThings music card. Only when they match, toggle **Confirm certificate** in device settings.
 4. Rename the single device to **ST Windows Media Control — Gaming PC**.
 5. Complete the [volume-first acceptance test](docs/testing.md) before testing media controls.
 
 The agent runs after sign-in, not before login. Running it as LocalSystem in Session 0 would not reliably address the user's media apps. Only one user/session and one PC per installed driver are supported in v1.
 
-Existing internal credentials are retained during upgrade. If reconnection is needed, open Pairing information in the PC tray and enter its 10-digit code in SmartThings Settings. There is no manual UUID/token entry.
+Existing internal credentials are retained during upgrade. If reconnection is needed, open Pairing information in the PC tray and enter its 8-digit code in SmartThings Settings. There is no manual UUID/token entry.
 
 ## Repository
 

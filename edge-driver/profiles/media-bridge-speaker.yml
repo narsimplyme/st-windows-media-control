@@ -45,12 +45,12 @@ preferences:
 
   - name: pairingCode
     title: Pairing code / 페어링 코드
-    description: Enter the 10 digits shown in the PC tray pairing window.
+    description: Enter the 8 digits shown in the PC tray pairing window.
     required: true
     preferenceType: integer
     definition:
       minimum: 0
-      maximum: 9999999999
+      maximum: 99999999
       default: 0
 
   - name: deviceIcon

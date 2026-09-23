@@ -17,8 +17,9 @@ function M.configuration(p, saved)
     if code ~= code or code < 0 or code > 9999999999 or code % 1 ~= 0 then return nil end
     code = code == 0 and "" or string.format("%.0f", code)
   end
-  if code == "" or code == "0000000000" then code = nil end
-  if code ~= nil and (type(code) ~= "string" or #code ~= 10 or code:find("[^0-9]")) then return nil end
+  if code == "" or code == "0000000000" or code == "00000000" then code = nil end
+  if code ~= nil and (type(code) ~= "string" or (#code ~= 8 and #code ~= 10) or code:find("[^0-9]")) then return nil end
+  -- Retain old saved ten-digit pairings; new codes use eight digits to fit the app integer input.
   local result = {ip=ip, port=port, code=code}
   if type(saved) == "table" and saved.ip == ip and saved.port == port and saved.code == code and M.credentials(saved) then
     result.id, result.token = saved.deviceId, saved.token

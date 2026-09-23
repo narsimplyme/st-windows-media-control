@@ -22,8 +22,7 @@ public sealed class PairingSession
             string next;
             do
             {
-                next = RandomNumberGenerator.GetInt32(1, 10).ToString(CultureInfo.InvariantCulture)
-                    + RandomNumberGenerator.GetInt32(0, 1_000_000_000).ToString("D9", CultureInfo.InvariantCulture);
+                next = RandomNumberGenerator.GetInt32(10_000_000, 100_000_000).ToString(CultureInfo.InvariantCulture);
             } while (next == code);
             code = next;
             expires = clock.GetUtcNow().AddMinutes(10);
@@ -44,7 +43,7 @@ public sealed class PairingSession
             if (now >= window) { window = now.AddMinutes(1); attempts = 0; }
             if (attempts >= 5) return 429;
             attempts++;
-            if (code is null || now >= expires || supplied is null || supplied.Length != 10 ||
+            if (code is null || now >= expires || supplied is null || supplied.Length != 8 ||
                 !CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(code), Encoding.UTF8.GetBytes(supplied)))
                 return 401;
             return 200;

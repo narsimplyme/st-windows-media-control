@@ -121,7 +121,7 @@ var pairingClock = new PairingClock();
 var shortPairing = new PairingSession(pairingClock);
 Check(shortPairing.Exchange("1234567890") == 401, "no pairing accepted before user opens pairing window");
 var firstCode = shortPairing.Generate();
-Check(firstCode.Length == 10 && firstCode.All(char.IsAsciiDigit) && firstCode[0] != '0', "pairing code is exactly 10 easily typed digits");
+Check(firstCode.Length == 8 && firstCode.All(char.IsAsciiDigit) && firstCode[0] != '0', "pairing code is exactly 8 easily typed digits");
 Check(shortPairing.Exchange(firstCode) == 200, "short code exchanges credentials");
 var secondCode = shortPairing.Generate();
 Check(secondCode != firstCode && shortPairing.Exchange(firstCode) == 401, "new code invalidates previous code");

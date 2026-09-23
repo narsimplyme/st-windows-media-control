@@ -10,7 +10,7 @@ The firewall rule is limited to the selected interface, port, application, local
 subnet and Private network profile. If elevation is canceled, retry **Configure
 firewall** from the tray menu. Administrator credentials are needed for that step.
 
-Open SmartThings settings, enter the PC address and 10-digit code, then compare
+Open SmartThings settings, enter the PC address and 8-digit code, then compare
 all four certificate groups on its music card with the PC pairing window. Toggle **Confirm certificate** in SmartThings settings only when they match. The hub address, certificate
 trust and internal credentials are saved automatically. No certificate is built
 into the generic driver. Reopening the EXE does not overwrite configuration or
@@ -62,7 +62,7 @@ The rule allows the configured TCP port only on the Private network profile, onl
 
 ## Pair
 
-Right-click the blue music-note icon in the Windows notification area and choose **Pairing information** (or double-click). The window shows PC address, port and a large **10-digit numeric pairing code**. Enter the address and code in SmartThings device settings; the default port is 8765. No UUID or token needs typing or clipboard sharing. **New code** replaces an expired code without disconnecting an already paired hub. Each code lasts ten minutes; once paired, the driver saves the internal credentials for future restarts. The interface uses Korean on Korean Windows and English otherwise.
+Right-click the blue music-note icon in the Windows notification area and choose **Pairing information** (or double-click). The window shows PC address, port and a large **8-digit numeric pairing code**. Enter the address and code in SmartThings device settings; the default port is 8765. No UUID or token needs typing or clipboard sharing. **New code** replaces an expired code without disconnecting an already paired hub. Each code lasts ten minutes; once paired, the driver saves the internal credentials for future restarts. The interface uses Korean on Korean Windows and English otherwise.
 
 Closing the information window keeps the companion running. **Exit ST Windows Media Control** stops it, including LAN control. To start it again before the next sign-in:
 
@@ -116,7 +116,7 @@ $rotation = Start-Process -FilePath .\artifacts\windows-x64\STMediaBridge.Agent.
 if ($rotation.ExitCode -ne 0) { throw 'Rotation failed; inspect logs next to agent.json.' }
 ```
 
-This updates only the token in `agent.json`, preserves the UUID/network settings and file ACL, and never prints the secret. For a development file, set `$configPath` to its absolute path and omit the scheduled-task stop if no task exists. Restart using the rebuilt companion (or rerun the installer to update installed binaries), then pair again using the tray's 10-digit code. The old running agent otherwise retains its old credential until restarted. Do not change `deviceId` unless intentionally replacing the pairing identity.
+This updates only the token in `agent.json`, preserves the UUID/network settings and file ACL, and never prints the secret. For a development file, set `$configPath` to its absolute path and omit the scheduled-task stop if no task exists. Restart using the rebuilt companion (or rerun the installer to update installed binaries), then pair again using the tray's 8-digit code. The old running agent otherwise retains its old credential until restarted. Do not change `deviceId` unless intentionally replacing the pairing identity.
 
 ## Uninstall
 
@@ -130,7 +130,7 @@ This stops/removes only the current user's startup task and retains files. In el
 
 Right-click the tray icon → **Reset pairing…** and confirm. This revokes the old
 internal identity and secret, restarts the companion host, and shows a new
-10-digit code. Enter that code in the existing SmartThings device's settings.
+8-digit code. Enter that code in the existing SmartThings device's settings.
 PC address/port and firewall configuration are retained. Cancel changes nothing.
 Use **New code** inside Pairing information when only the temporary code expired;
 use **Reset pairing** when the existing connection should be revoked.

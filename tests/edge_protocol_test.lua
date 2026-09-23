@@ -70,3 +70,12 @@ for _, bad in ipairs({{}, {deviceId="test",epoch=string.rep("a",32),revision=1},
   assert(ok and not valid, "malformed snapshots must be rejected without terminating the worker")
 end
 print("PASS malformed snapshot types fail closed without exceptions")
+
+for _, value in ipairs({10000000, 99999999, "12345678"}) do
+  short.pairingCode = value
+  assert(p.configuration(short).code == tostring(value), "eight-digit numeric codes accepted")
+end
+for _, value in ipairs({9999999, "00000000", "1234567", "123456789"}) do
+  short.pairingCode = value
+  assert(not p.configuration(short), "incorrect new-code length rejected")
+end

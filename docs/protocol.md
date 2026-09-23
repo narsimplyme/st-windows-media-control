@@ -90,7 +90,7 @@ The API exposes only the listed audio/media operations. It cannot accept shell c
 
 ## Short-code pairing
 
-The PC tray generates a random 10-digit decimal code (no leading zero), valid
+The PC tray generates a random 8-digit decimal code (no leading zero), valid
 for ten minutes and kept in memory only. `POST /v1/pair` with JSON
 `{"code":"1234567890"}` exchanges a valid code for `{deviceId, token}`. The example
 is illustrative, not an actual code. This route accepts the configured hub,

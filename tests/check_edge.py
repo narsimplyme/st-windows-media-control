@@ -59,7 +59,7 @@ for field in ["pcAddress"]:
     assert validate(lua.table_from(incomplete)) is None, f"Sentinel accepted: {field}"
 assert "token" not in preferences and "deviceId" not in preferences
 assert preferences["pairingCode"]["preferenceType"] == "integer"
-assert preferences["pairingCode"]["definition"] == {"minimum": 0, "maximum": 9999999999, "default": 0}
+assert preferences["pairingCode"]["definition"] == {"minimum": 0, "maximum": 99999999, "default": 0}
 main = profile["components"][0]
 assert main["id"] == "main" and main["categories"] == [{"name": "SmartMonitor"}]
 playback = next(c for c in main["capabilities"] if c["id"] == "mediaPlayback")
