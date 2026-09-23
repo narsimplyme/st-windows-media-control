@@ -180,8 +180,17 @@ assert(step(enrollment) == "sleep", "play/automation cannot approve certificate 
 preferences.approveCertificate = true
 captured.lifecycle_handlers.infoChanged(driver,device)
 enrollment = spawned[#spawned]
-assert(device:get_field("tlsTrust") == nil, "approval alone must not persist unverified trust")
+assert(device:get_field("tlsTrust").certificate == "candidate-certificate", "explicit comparison approval persists the certificate independently of pairing")
 assert(step(enrollment) == "pair", "dedicated approval permits verified exchange")
+assert(step(enrollment,nil) == "sleep", "expired code can fail after certificate approval")
+preferences.pairingCode = "12345678"
+captured.lifecycle_handlers.infoChanged(driver,device)
+enrollment = spawned[#spawned]
+local kind, code = step(enrollment)
+assert(kind == "pair" and code == "12345678", "new code pairs immediately without toggling approval")
+captured.lifecycle_handlers.init(driver,device)
+enrollment = spawned[#spawned]
+assert(step(enrollment) == "pair", "approved pin survives driver restart before pairing succeeds")
 assert(step(enrollment,{deviceId="12345678-1234-1234-1234-123456789abc",token=string.rep("d",32)}) == "request")
 assert(device:get_field("tlsTrust").certificate == "candidate-certificate")
 preferences.verifyCertificate = true
@@ -190,3 +199,13 @@ assert(device:get_field("tlsTrust") == nil, "explicit reset clears trust")
 assert(step(spawned[#spawned]) == "discover")
 print("PASS certificate discovery, approval gate, persistence and explicit trust reset")
 
+local resetWorker = spawned[#spawned]
+assert(step(resetWorker,"replacement-certificate") == "sleep")
+preferences.pairingCode = "87654321"
+captured.lifecycle_handlers.infoChanged(driver,device)
+assert(device:get_field("tlsTrust") == nil, "enabled approval switch must not approve a replacement certificate")
+assert(step(spawned[#spawned]) == "discover", "trust reset still requires explicit comparison approval")
+preferences.pcAddress = "192.168.1.21"
+captured.lifecycle_handlers.infoChanged(driver,device)
+assert(step(spawned[#spawned]) == "discover", "different PC cannot inherit certificate approval")
+print("PASS expired-code retry retains approved pin; replacement certificates require approval")

@@ -54,12 +54,17 @@ local function restart(_, device)
   device:set_field("certificateApprovalSetting", approval, {persist=true})
   local verify = device.preferences.verifyCertificate == true
   local previousVerify = device:get_field("verifyCertificateSetting")
-  if previousVerify ~= nil and previousVerify ~= verify then device:set_field("tlsTrust", nil, {persist=true}) end
+  local resetTrust = previousVerify ~= nil and previousVerify ~= verify
+  if resetTrust then device:set_field("tlsTrust", nil, {persist=true}) end
   device:set_field("verifyCertificateSetting", verify, {persist=true})
   local config = configuration(device)
   if config and config.token then remember(device, config) end
-  if config and approved and workers[device.id].config.ip == config.ip and workers[device.id].config.port == config.port then
+  if config and approved and not resetTrust and workers[device.id].config.ip == config.ip and workers[device.id].config.port == config.port then
     config.certificate = candidate
+    -- User comparison approves this certificate independently of the short-lived
+    -- pairing code. Keep the pin when an expired code fails or preferences change.
+    -- Every subsequent request still verifies TLS against this exact certificate.
+    device:set_field("tlsTrust", {ip=config.ip, port=config.port, certificate=candidate}, {persist=true})
   end
   local profile = device.preferences.deviceIcon == "speaker" and "media-bridge-speaker" or "media-bridge"
   -- Nonpersistent cache allows retry on driver restart, and prevents metadata
