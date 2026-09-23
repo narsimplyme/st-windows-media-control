@@ -46,8 +46,6 @@ Existing internal credentials are retained during upgrade. If reconnection is ne
 | `docs/testing.md` | Automated checks and hardware acceptance tests |
 | `tests/` | State-store, Lua, HTTP and optional native-audio tests |
 
-Album artwork is not supported.
-
 ## Development
 
 ```powershell
