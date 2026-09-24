@@ -42,6 +42,9 @@ children.sync(driver,parent,{})
 assert(#deleted==1 and deleted[1]==child.id, "uncheck physically deletes once")
 children.sync(driver,parent,{app})
 assert(#created==1, "recheck while deletion pending must await removal")
+clock=clock+31
+children.sync(driver,parent,{app})
+assert(#deleted==2, "pending delete retries even when user rechecks before removal")
 children.removed(child);list={}
 children.sync(driver,parent,{app})
 assert(#created==2, "recheck creates replacement after deletion")
@@ -49,7 +52,7 @@ assert(#created==2, "recheck creates replacement after deletion")
 children.sync(driver,parent,{})
 list={child}
 children.sync(driver,parent,{})
-assert(#deleted==2)
+assert(#deleted==3)
 print("PASS app children creation, removal, delayed lifecycle, renaming, reconnect and schema guards")
 
 local many = {}

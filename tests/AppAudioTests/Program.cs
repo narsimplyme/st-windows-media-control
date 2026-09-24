@@ -89,5 +89,7 @@ finally
 {
     foreach(var process in children) { if (!process.HasExited) { process.Kill(); await process.WaitForExitAsync(); } process.Dispose(); }
     await controller.StopAsync(default);
-    if (Directory.Exists(root)) Directory.Delete(root,true);
+    var catalogFile = Path.Combine(root, "apps.json");
+    if (File.Exists(catalogFile)) File.Delete(catalogFile);
+    if (Directory.Exists(root)) Directory.Delete(root);
 }

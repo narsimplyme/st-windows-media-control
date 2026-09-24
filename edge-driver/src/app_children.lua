@@ -22,14 +22,14 @@ function M.sync(driver, parent, apps)
     if key then
       existing[key] = true; creating[key] = nil
       local app = wanted[key]
-      if not app then
+      if not app or deleting[child.id] then
         child:offline()
         if not deleting[child.id] or now - deleting[child.id] > 30 then
           deleting[child.id] = now
           local ok = pcall(driver.try_delete_device, driver, child.id)
           if not ok then deleting[child.id] = nil end
         end
-      elseif not deleting[child.id] then
+      else
         local old = child:get_field("appVolumeState")
         if app.active then
           if not old or not old.active or old.volume ~= app.volume then child:emit_event(caps.audioVolume.volume(app.volume)) end
