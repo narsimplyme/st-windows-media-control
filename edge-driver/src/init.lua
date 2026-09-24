@@ -47,7 +47,15 @@ local function remember(device, config)
   if config.certificate then device:set_field("tlsTrust", {ip=config.ip, port=config.port, certificate=config.certificate}, {persist=true}) end
 end
 local function restart(driver, device)
-  if children.is_child(device) then device:offline(); return end
+  if children.is_child(device) then
+    if device:get_field("requestedIconProfile") ~= "app-volume" then
+      device:set_field("requestedIconProfile", "app-volume")
+      local ok = pcall(device.try_update_metadata, device, {profile="app-volume"})
+      if not ok then device:set_field("requestedIconProfile", nil) end
+    end
+    device:offline()
+    return
+  end
   creating = false
   local candidate = workers[device.id] and workers[device.id].candidate
   local approval = device.preferences.approveCertificate == true

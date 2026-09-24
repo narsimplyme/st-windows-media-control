@@ -149,12 +149,20 @@ local saved = device:get_field("pairingCredentials")
 assert(saved.token == string.rep("b",32) and saved.code == code)
 captured.capability_handlers.audioVolume.setVolume(driver,device,{args={volume=20}})
 assert(posts[#posts].value == 20, "commands use saved internal credential")
-local appChild = {network_type="EDGE_CHILD",parent_assigned_child_key=string.rep("a",64),
+local appChild = {network_type="LAN",parent_assigned_child_key=string.rep("a",64),
     get_parent_device=function() return device end, label="User renamed this"}
 captured.capability_handlers.audioVolume.setVolume(driver,appChild,{args={volume=25}})
 assert(posts[#posts].path=="/v1/apps/command" and posts[#posts].key==appChild.parent_assigned_child_key and posts[#posts].value==25)
 captured.capability_handlers.audioMute.mute(driver,appChild)
 assert(posts[#posts].command=="setMute" and posts[#posts].value==true)
+local childFields, childProfile = {}, nil
+appChild.get_field=function(_,k) return childFields[k] end
+appChild.set_field=function(_,k,v) childFields[k]=v end
+appChild.try_update_metadata=function(_,m) childProfile=m.profile end
+appChild.offline=function() end
+local workerCount=#spawned
+captured.lifecycle_handlers.init(driver,appChild)
+assert(childProfile=="app-volume" and #spawned==workerCount, "child wrapper is never initialized as a parent even without EDGE_CHILD network_type")
 local beforeChildPlayback=#posts
 captured.capability_handlers.mediaPlayback.play(driver,appChild,{command="play"})
 assert(#posts==beforeChildPlayback, "child cannot route media playback to parent")

@@ -2,7 +2,12 @@ local caps = require "st.capabilities"
 local socket = require "cosock.socket"
 local M = {}
 local pending, deleting = {}, {}
-function M.is_child(device) return device.network_type == "EDGE_CHILD" end
+function M.is_child(device)
+  -- The hub's child wrapper need not expose the REST network type string.
+  -- This driver assigns a stable app key only to its volume children.
+  return type(device.parent_assigned_child_key) == "string" and #device.parent_assigned_child_key == 64
+    and not device.parent_assigned_child_key:find("[^0-9a-f]")
+end
 function M.key(device)
   local key = device.parent_assigned_child_key
   if type(key) == "string" and #key == 64 and not key:find("[^0-9a-f]") then return key end
