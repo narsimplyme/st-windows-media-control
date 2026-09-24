@@ -75,6 +75,10 @@ var allowedHub = config.HubAddress;
 var enrollmentGate = new object();
 var state = new StateStore(config.DeviceId);
 builder.Services.AddSingleton(state);
+var apps = new AppCatalog(Path.Combine(Path.GetDirectoryName(configPath)!, "audio-apps.json"), state);
+builder.Services.AddSingleton(apps);
+builder.Services.AddSingleton<AppAudioController>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AppAudioController>());
 builder.Services.AddSingleton<AudioController>();
 builder.Services.AddSingleton<MediaController>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<AudioController>());
@@ -84,7 +88,7 @@ if (!args.Contains("--no-tray"))
         sp.GetRequiredService<IHostApplicationLifetime>(), sp.GetRequiredService<ILogger<TrayService>>(),
         regenerate: () => replacement = AgentConfig.RegenerateIdentity(configPath), showPairing: showPairing, session: pairingSession,
         startup: new StartupSettings(FirstRun.Executable, configPath),
-        certificate: tlsIdentity?.ExportCertificatePem(), configureFirewall: () => FirstRun.RequestFirewall(configPath)));
+        certificate: tlsIdentity?.ExportCertificatePem(), configureFirewall: () => FirstRun.RequestFirewall(configPath), apps: apps));
 var app = builder.Build();
 // AgentConfig enforces the 32-hex-character contract. Compare the complete
 // credential in constant time; never truncate or normalize a supplied token.
@@ -152,6 +156,35 @@ app.MapGet("/v1/events", async (string? epoch, long? after, HttpContext ctx) =>
 {
     using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, app.Lifetime.ApplicationStopping);
     return await state.WaitAsync(epoch, after ?? -1, TimeSpan.FromSeconds(20), cancellation.Token);
+});
+app.MapPost("/v1/apps/command", async (HttpContext ctx, AppAudioController audio) =>
+{
+    JsonDocument body;
+    try { body = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted); }
+    catch (JsonException) { return Results.BadRequest(); }
+    using (body)
+    {
+        var root = body.RootElement;
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("key", out var key)
+            || key.ValueKind != JsonValueKind.String || key.GetString() is not { Length: 64 } appKey
+            || appKey.Any(c => !char.IsAsciiHexDigit(c)) || !root.TryGetProperty("command", out var cmd)
+            || cmd.ValueKind != JsonValueKind.String || !root.TryGetProperty("value", out var value)) return Results.BadRequest();
+        bool accepted;
+        switch (cmd.GetString())
+        {
+            case "setVolume":
+                if (!value.TryGetInt32Safe(out var volume) || volume is < 0 or > 100) return Results.BadRequest();
+                accepted = audio.Set(appKey, volume: volume); break;
+            case "adjustVolume":
+                if (!value.TryGetInt32Safe(out var delta) || delta is < -100 or > 100) return Results.BadRequest();
+                accepted = audio.Set(appKey, delta: delta); break;
+            case "setMute":
+                if (value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return Results.BadRequest();
+                accepted = audio.Set(appKey, muted: value.GetBoolean()); break;
+            default: return Results.BadRequest();
+        }
+        return accepted ? Results.Ok(new { accepted = true }) : Results.Conflict(new { accepted = false });
+    }
 });
 app.MapPost("/v1/command", async (HttpContext ctx, AudioController audio, MediaController media) =>
 {

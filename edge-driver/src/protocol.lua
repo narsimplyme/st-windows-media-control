@@ -39,10 +39,26 @@ function M.credentials(p)
     and p.deviceId ~= "00000000-0000-0000-0000-000000000000"
 
 end
+function M.apps(apps)
+  if apps == nil then return true end
+  if type(apps) ~= "table" or #apps > 64 then return false end
+  local seen, count = {}, 0
+  for index, app in pairs(apps) do
+    count = count + 1
+    if type(index) ~= "number" or index % 1 ~= 0 or index < 1 or index > #apps then return false end
+    if type(app) ~= "table" or type(app.key) ~= "string" or #app.key ~= 64 or app.key:find("[^0-9a-f]") or seen[app.key] then return false end
+    if type(app.name) ~= "string" or #app.name < 1 or #app.name > 320 or type(app.active) ~= "boolean"
+      or type(app.volume) ~= "number" or app.volume < 0 or app.volume > 100 or app.volume % 1 ~= 0
+      or type(app.muted) ~= "boolean" then return false end
+    seen[app.key] = true
+  end
+  return count == #apps
+end
 function M.valid(s, id)
   if type(s) ~= "table" or s.deviceId ~= id or type(s.epoch) ~= "string" or
       #s.epoch ~= 32 or s.epoch:find("[^%x]") or type(s.revision) ~= "number" or
       s.revision < 1 or s.revision % 1 ~= 0 then return false end
+  if not M.apps(s.apps) then return false end
   local a, m = s.audio, s.media
   if type(a) ~= "table" or type(m) ~= "table" then return false end
   if m.album ~= nil and (type(m.album) ~= "string" or #m.album > 1024) then return false end

@@ -158,3 +158,13 @@ users who want to run the EXE without installing prerequisites.
 ```powershell
 dotnet publish windows-agent/STMediaBridge.Agent.csproj -p:PublishProfile=Compact -p:RestoreLockedMode=true -o artifacts/compact
 ```
+
+### Per-app volume selection
+
+Tray → App Volume Controls lists current and previously discovered audio apps,
+with icons when available. Checkboxes are the sole exposure control; no app is
+selected automatically. Selections persist in the private `audio-apps.json`
+next to `agent.json`. Apps without a current session remain selectable.
+The matching Edge driver creates/deletes volume-only children on reconnect.
+Changes use Core Audio session events, never GSMTC. See `docs/protocol.md` for
+identity, multi-session aggregation, and lifecycle semantics.

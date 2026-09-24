@@ -27,7 +27,7 @@ local function request(config, path, body, bootstrap)
     sink = function(chunk)
       if chunk then
         size = size + #chunk
-        if size > 16384 then return nil, "response too large" end
+        if size > (bootstrap and 16384 or 65536) then return nil, "response too large" end
         chunks[#chunks + 1] = chunk
       end
       return 1

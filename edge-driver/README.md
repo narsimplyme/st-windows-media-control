@@ -91,3 +91,11 @@ Profile switching uses the official Edge `try_update_metadata({profile=...})` AP
 https://developer.smartthings.com/docs/edge-device-drivers/device.html
 
 The pairing-code preference uses integer input to request the app’s numeric keyboard. Codes have no leading zero. The driver normalizes integer values to ten-digit strings and accepts existing string preferences during upgrade; zero is the unpaired default.
+
+## App volume children
+
+Install the matching companion build, then select apps in its tray → App Volume
+Controls. The driver creates EDGE_CHILD devices named `PC <App name>` using the
+`app-volume` profile (audioVolume + audioMute only). Unchecking an app physically
+deletes its child. Closing an app only marks that child offline. Do not use child
+names as app identifiers; renaming in SmartThings is supported.

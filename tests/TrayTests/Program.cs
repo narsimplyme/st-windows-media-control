@@ -129,6 +129,28 @@ internal static class Program
             licensePreview.Save(Path.Combine(Path.GetDirectoryName(output)!, "licenses-preview.png"));
             licenseWindow.Hide();
         }
+        var appCatalogPath = Path.Combine(Path.GetTempPath(), "stwmc-ui-" + Guid.NewGuid().ToString("N"), "apps.json");
+        try
+        {
+            var appCatalog = new AppCatalog(appCatalogPath, new StateStore("test"));
+            var spotify = new SavedAudioApp(AppCatalog.KeyFor("spotify"), "Spotify", Environment.ProcessPath!);
+            var chrome = new SavedAudioApp(AppCatalog.KeyFor("chrome"), "Google Chrome", "");
+            appCatalog.Observe([spotify, chrome], [new(spotify.Key, "Spotify", true, 70, false)]);
+            using var appWindow = new AppVolumeForm(appCatalog);
+            appWindow.ShowInTaskbar = false; appWindow.Show(); Application.DoEvents();
+            var appList = Descendants(appWindow).OfType<ListView>().Single();
+            Check(appList.SmallImageList!.Images.Count > 0 && appList.SmallImageList.Handle != IntPtr.Zero, "real executable icon stays alive until list handle creation");
+            appList.Items[chrome.Key]!.Checked = true;
+            Check(appCatalog.IsExposed(chrome.Key), "UI checkbox selects previously discovered inactive app");
+            appList.Items[chrome.Key]!.Checked = false;
+            Check(!appCatalog.IsExposed(chrome.Key), "UI uncheck removes exposure");
+            appList.Items[spotify.Key]!.Checked = true;
+            using var appPreview = new Bitmap(appWindow.Width, appWindow.Height);
+            appWindow.DrawToBitmap(appPreview, new Rectangle(Point.Empty, appPreview.Size));
+            appPreview.Save(Path.Combine(Path.GetDirectoryName(output)!, "app-volumes-preview.png"));
+            appWindow.Hide();
+        }
+        finally { File.Delete(appCatalogPath); Directory.Delete(Path.GetDirectoryName(appCatalogPath)!); }
         string? selected = null;
         var setup = FirstRun.Configure("unused-test-config", new[] { "192.168.1.20", "192.168.1.30" },
             (ip, enabled) => { selected = ip; Check(!enabled, "first-run autostart is an explicit opt-in"); },

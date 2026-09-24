@@ -14,7 +14,7 @@ package.loaded["cosock"] = {spawn=function(fn) spawned[#spawned+1] = coroutine.c
 package.loaded["cosock.socket"] = {sleep=function() coroutine.yield("sleep") end}
 package.loaded["client"] = {request=function(config, path, body)
   if path == "/v1/pair" then return coroutine.yield("pair", body.code) end
-  if body then posts[#posts+1]=body; return {accepted=true} end
+  if body then body.path=path; posts[#posts+1]=body; return {accepted=true} end
   return coroutine.yield("request", path)
 end}
 package.loaded["st.driver"] = function(_, definition)
@@ -35,6 +35,7 @@ function device:emit_event(event)
   end
   self.events[#self.events+1]=event
 end
+function device:get_child_list() return {} end
 function device:online() self.connected=true end
 function device:offline() self.connected=false end
 local driver = {devices={}, creates=0}
@@ -148,6 +149,16 @@ local saved = device:get_field("pairingCredentials")
 assert(saved.token == string.rep("b",32) and saved.code == code)
 captured.capability_handlers.audioVolume.setVolume(driver,device,{args={volume=20}})
 assert(posts[#posts].value == 20, "commands use saved internal credential")
+local appChild = {network_type="EDGE_CHILD",parent_assigned_child_key=string.rep("a",64),
+    get_parent_device=function() return device end, label="User renamed this"}
+captured.capability_handlers.audioVolume.setVolume(driver,appChild,{args={volume=25}})
+assert(posts[#posts].path=="/v1/apps/command" and posts[#posts].key==appChild.parent_assigned_child_key and posts[#posts].value==25)
+captured.capability_handlers.audioMute.mute(driver,appChild)
+assert(posts[#posts].command=="setMute" and posts[#posts].value==true)
+local beforeChildPlayback=#posts
+captured.capability_handlers.mediaPlayback.play(driver,appChild,{command="play"})
+assert(#posts==beforeChildPlayback, "child cannot route media playback to parent")
+
 captured.lifecycle_handlers.init(driver,device)
 assert(step(spawned[#spawned]) == "request", "restart reuses saved credentials without pairing again")
 preferences.pairingCode = "9876543210"

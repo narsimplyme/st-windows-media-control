@@ -20,6 +20,7 @@ jobs:
       - run: dotnet build windows-agent/STMediaBridge.Agent.csproj -c Release --no-restore -r win-x64
       - run: dotnet run --project tests/StateTests/StateTests.csproj
       - run: dotnet run --project tests/TrayTests/TrayTests.csproj
+      - run: dotnet run --project tests/AppAudioTests/AppAudioTests.csproj -r win-x64
       - run: python -m pip install lupa==2.8 PyYAML==6.0.2
       - run: python tests/check_edge.py
       - run: ./tests/firewall_validation.ps1

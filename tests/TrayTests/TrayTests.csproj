@@ -10,7 +10,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Compile Include="../../windows-agent/StartupSettings.cs" Link="StartupSettings.cs" />
     <Compile Include="../../windows-agent/ProductInfo.cs" Link="ProductInfo.cs" />
+    <Compile Include="../../windows-agent/AppVolumeForm.cs" Link="AppVolumeForm.cs" />
     <Compile Include="../../windows-agent/TrayService.cs" Link="TrayService.cs" />
+    <Compile Include="../../windows-agent/AppCatalog.cs" Link="AppCatalog.cs" />
     <Compile Include="../../windows-agent/StateStore.cs" Link="StateStore.cs" />
     <Compile Include="../../windows-agent/AgentConfig.cs" Link="AgentConfig.cs" />
     <Compile Include="../../windows-agent/TlsIdentity.cs" Link="TlsIdentity.cs" />

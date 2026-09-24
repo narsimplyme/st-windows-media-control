@@ -1,0 +1,10 @@
+name: app-volume
+components:
+  - id: main
+    capabilities:
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+    categories:
+      - name: Speaker

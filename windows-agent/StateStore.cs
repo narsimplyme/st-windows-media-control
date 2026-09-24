@@ -5,7 +5,10 @@ public record MediaState(bool Available = false, string Playback = "stopped",
     string Title = "", string Artist = "", string Source = "",
     bool CanPlay = false, bool CanPause = false, bool CanNext = false,
     bool CanPrevious = false, bool CanToggle = false, string Album = "");
-public record Snapshot(string DeviceId, string Epoch, long Revision, AudioState Audio, MediaState Media);
+public record Snapshot(string DeviceId, string Epoch, long Revision, AudioState Audio, MediaState Media)
+{
+    public AppVolumeState[] Apps { get; init; } = [];
+}
 
 // Each response is a complete immutable snapshot. The lock closes the gap between
 // checking a revision and subscribing; no notification can be lost in that gap.
@@ -17,6 +20,7 @@ public sealed class StateStore(string deviceId)
     private static TaskCompletionSource NewSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     public Snapshot Read() { lock (gate) return state; }
     public void SetAudio(AudioState value) => Update(s => s with { Audio = value });
+    public void SetApps(AppVolumeState[] value) => Update(s => s.Apps.SequenceEqual(value) ? s : s with { Apps = value });
     public void SetMedia(MediaState value) => Update(s => s with { Media = value });
     private void Update(Func<Snapshot, Snapshot> update)
     {

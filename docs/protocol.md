@@ -11,7 +11,8 @@ The token encodes 16 cryptographically random bytes (128 bits); the all-zero val
 | `GET /v1/identity` | Public certificate only; no secret or control data |
 | `GET /v1/state` | Current complete snapshot, immediately |
 | `GET /v1/events?epoch=<epoch>&after=<revision>` | Return immediately if cursor differs, otherwise hold up to 20 seconds for a native state change |
-| `POST /v1/command` | Execute one allowlisted command; return acknowledgement, not speculative state |
+| `POST /v1/command` | Execute one allowlisted parent command; return acknowledgement, not speculative state |
+| `POST /v1/apps/command` | Set volume/mute for one locally selected app key |
 
 Snapshot shape (illustrative placeholder identities):
 
@@ -108,3 +109,45 @@ UUID/token preferences, when present, are migrated into private persisted fields
 The visible profile contains PC address, port, pairing code, icon choice and an explicit certificate re-verification toggle.
 
 Album artwork serving has been removed. The media snapshot retains the album title but no image URL. The Edge driver clears any previously published image URL on its first metadata update.
+
+## Selected app volume channels
+
+The snapshot adds `apps`, an array containing only apps selected in the local
+Companion UI. Each item has `key` (64 lowercase hexadecimal SHA-256 characters),
+`name`, `active` (a non-expired audio session exists), `volume` (0–100), and
+`muted` (boolean). Selection and native session changes wake the same revision
+long poll as parent audio/media changes. The driver reconciles children on every
+valid snapshot, including heartbeat snapshots. Missing `apps` from an older
+companion is not treated as an empty selection. Invalid or duplicate entries
+reject the whole snapshot before reconciliation. Responses are capped at 64 KiB,
+and the local UI allows up to 64 selected apps.
+
+`POST /v1/apps/command` accepts `{ "key": "<app key>", "command": "setVolume",
+"value": 25 }`, `adjustVolume` (integer −100…100), or `setMute` (boolean).
+It uses the existing source filtering, bearer authentication, TLS, and 1 KiB body
+limit. Unknown, unselected, or absent-session apps return 409; malformed commands
+return 400. The network API cannot change exposure or launch a process.
+
+A packaged app is identified by AppUserModelID when available; desktop apps use
+the full executable path, normalized case-insensitively before hashing. PID is
+used only to resolve the current process. Paths stay in the private local
+`audio-apps.json` catalog and are not sent to SmartThings. Different installations
+of the same executable remain separate. Moving a desktop executable can create
+a new app identity. Friendly names use the existing AppInfo resolver plus known
+names and file product metadata; labels never determine routing.
+
+All non-expired sessions for an identity, across active render endpoints, receive
+the same requested volume or mute. When sessions differ, the most recently
+reported simple-volume event represents the group; initial discovery uses a
+stable session ordering. Adjust-volume applies one group target to every session.
+Commands are not queued for absent apps. Session creation/volume/state and endpoint
+notifications drive updates; a 20-second scan repairs missed notifications.
+
+Selected apps remain in the snapshot with `active:false` when they exit. Their
+EDGE_CHILD devices go offline, retaining their identity and last known values.
+Only deselection removes them. A checked app creates an `app-volume` child with
+`parent_assigned_child_key=key`; a user-renamed label is preserved. Unchecking
+uses `try_delete_device`. Creation/deletion requests are throttled while awaiting
+asynchronous lifecycle updates and reconciled again after reconnect. Checking
+again after deletion creates a new child. Automation references to the deleted
+child are therefore not retained.

@@ -138,6 +138,33 @@ Check(shortPairing.Exchange(currentCode) == 401 && shortPairing.Remaining <= Tim
 Check(new PairingSession(pairingClock).Exchange(currentCode) == 401, "host restart invalidates outstanding code");
 Console.WriteLine($"{checks} total checks including short pairing passed");
 
+var appPath = Path.Combine(Path.GetTempPath(), "stwmc-app-tests-" + Guid.NewGuid().ToString("N"), "apps.json");
+try
+{
+    var appState = new StateStore("test");
+    var catalog = new AppCatalog(appPath, appState);
+    var key = AppCatalog.KeyFor(@"exe:C:\Apps\Chrome.exe");
+    Check(key == AppCatalog.KeyFor(@"EXE:c:\apps\chrome.EXE"), "app key normalizes Windows path casing");
+    Check(key != AppCatalog.KeyFor(@"exe:D:\Apps\Chrome.exe"), "different installations do not merge by basename");
+    var known = new SavedAudioApp(key, "Google Chrome", @"C:\Apps\Chrome.exe");
+    catalog.Observe([known], [new(key, known.Name, true, 70, false)]);
+    Check(appState.Read().Apps.Length == 0, "discovery alone never exposes apps");
+    catalog.SetExposed(key, true);
+    Check(appState.Read().Apps.Single().Volume == 70, "checkbox publishes selected app state");
+    var revision = appState.Read().Revision;
+    catalog.Observe([known], [new(key, known.Name, true, 70, false)]);
+    Check(appState.Read().Revision == revision, "unchanged app snapshots do not wake long poll");
+    catalog.Observe([], []);
+    Check(appState.Read().Apps.Single().Active == false && catalog.Read().Single().App.Exposed, "exited app stays selected and in snapshot");
+    var restarted = new AppCatalog(appPath, appState);
+    Check(appState.Read().Apps.Single().Key == key && !appState.Read().Apps.Single().Active, "startup preserves selection before session discovery");
+    restarted.SetExposed(key, false);
+    Check(appState.Read().Apps.Length == 0 && restarted.Read().Length == 1, "uncheck removes exposure but retains discovery history");
+    restarted.SetExposed(key, true);
+    Check(appState.Read().Apps.Single().Key == key, "previously discovered inactive app can be reselected");
+}
+finally { if (File.Exists(appPath)) File.Delete(appPath); Directory.Delete(Path.GetDirectoryName(appPath)!); }
+
 sealed class PairingClock : TimeProvider
 {
     private DateTimeOffset now = DateTimeOffset.UtcNow;

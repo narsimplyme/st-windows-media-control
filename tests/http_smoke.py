@@ -95,6 +95,15 @@ with tempfile.TemporaryDirectory(prefix="st-mediabridge-") as directory:
         assert request("/v1/command", {"command": "invalid", "padding": "x" * 2048})[0] == 413
         for command in ["shutdown", "run", "anything"]:
             assert request("/v1/command", {"command": command})[0] == 400
+        assert isinstance(state["apps"], list) and state["apps"] == []
+        app_command = {"key": "a" * 64, "command": "setVolume", "value": 25}
+        assert request("/v1/apps/command", app_command, auth="")[0] == 401
+        assert request("/v1/apps/command", app_command)[0] == 409  # unselected / unknown
+        for bad in [{**app_command, "key": "bad"}, {**app_command, "value": 101},
+                    {**app_command, "value": True}, {**app_command, "command": "run"},
+                    {**app_command, "command": "setMute", "value": "false"}]:
+            assert request("/v1/apps/command", bad)[0] == 400
+        print("PASS app command authentication, selection gate and input validation")
         assert request("/missing")[0] == 404
         assert request("/v1/artwork/cover.jpg", auth="")[0] == 401
         assert request("/v1/artwork/cover.jpg")[0] == 404

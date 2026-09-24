@@ -81,20 +81,7 @@ public sealed class MediaController(StateStore state, ILogger<MediaController> l
         if (sourceId == appId) return sourceName;
         sourceId = appId;
         sourceName = Clip(appId);
-        // Resolve once per session/source, not on every playback notification.
-        // Older Windows and unregistered desktop apps retain their original ID.
-        if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
-        {
-            try
-            {
-                var name = AppInfo.GetFromAppUserModelId(appId)?.DisplayInfo?.DisplayName;
-                if (!string.IsNullOrWhiteSpace(name)) sourceName = Clip(name);
-            }
-            catch (Exception)
-            {
-                // Cosmetic lookup failure must not make media control unavailable.
-            }
-        }
+        sourceName = AppIdentity.FriendlyName(appId, sourceName);
         return sourceName;
     }
     public async Task<bool> CommandAsync(string command, CancellationToken ct)

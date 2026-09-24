@@ -69,3 +69,12 @@ Control and pairing use verified TLS 1.2 or newer. Initial public-certificate di
 MIT licensed. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md). Contributions should keep volume synchronization reliable and avoid adding PC power-management features.
 
 Developed using OpenAI Codex.
+
+## App volume controls
+
+Open the Windows tray menu → **App Volume Controls** and check the apps to expose.
+Each selection creates **PC <App name>** in SmartThings with volume and mute only.
+Play audio once to discover an app. Previously discovered apps remain selectable
+when closed. Closing an app retains its child; unchecking it deletes the child.
+Windows Volume Mixer changes sync back to SmartThings. The existing parent keeps
+master volume, mute, playback controls, and track information.

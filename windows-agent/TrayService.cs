@@ -9,7 +9,7 @@ namespace STMediaBridge;
 // WinForms owns a separate STA thread; native media observers and HTTP remain
 // on the host's background threads. The icon appears only after the server starts.
 public sealed class TrayService(AgentConfig config, StateStore state,
-    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null) : IHostedService, IDisposable
+    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null) : IHostedService, IDisposable
 {
     private static int uiInitialized;
     private readonly object gate = new();
@@ -42,7 +42,7 @@ public sealed class TrayService(AgentConfig config, StateStore state,
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
             }
-            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup, certificate, configureFirewall);
+            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup, certificate, configureFirewall, apps);
             log.LogInformation("Tray icon ready");
             using var registration = stopping.Token.Register(context.RequestClose);
             if (!stopping.IsCancellationRequested) Application.Run(context);
@@ -72,11 +72,12 @@ internal sealed class TrayContext : ApplicationContext
     private readonly ContextMenuStrip menu = new();
     private readonly Icon icon;
     private PairingForm? pairing;
+    private AppVolumeForm? appVolumes;
     private readonly string? certificate;
     internal static string T(string korean, string english) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? korean : english;
 
-    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null)
+    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null)
     {
         this.certificate = certificate;
         session ??= new PairingSession();
@@ -86,6 +87,11 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(status);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(T("페어링 정보…", "Pairing information…"), null, (_, _) => ShowPairing(config, state, session));
+        if (apps is not null) menu.Items.Add(T("앱별 볼륨 제어…", "App Volume Controls…"), null, (_, _) =>
+        {
+            if (appVolumes is null || appVolumes.IsDisposed) appVolumes = new AppVolumeForm(apps);
+            Present(appVolumes);
+        });
         if (configureFirewall is not null) menu.Items.Add(T("방화벽 설정…", "Configure firewall…"), null, (_, _) =>
         {
             try { configureFirewall(); }
@@ -197,6 +203,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         tray.Visible = false;
         pairing?.Close();
+        appVolumes?.Close();
         base.ExitThreadCore();
     }
     protected override void Dispose(bool disposing)
@@ -204,6 +211,7 @@ internal sealed class TrayContext : ApplicationContext
         if (disposing)
         {
             pairing?.Dispose();
+            appVolumes?.Dispose();
             tray.Visible = false;
             tray.Dispose();
             menu.Dispose();

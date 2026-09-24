@@ -15,6 +15,7 @@ for path in (ROOT / "edge-driver/src").glob("*.lua"):
 lua.execute((ROOT / "tests/edge_protocol_test.lua").read_text(encoding="utf-8"))
 lua.globals().TEST_ROOT = ROOT.as_posix()
 lua.execute((ROOT / "tests/edge_driver_test.lua").read_text(encoding="utf-8"))
+lua.execute((ROOT / "tests/edge_children_test.lua").read_text(encoding="utf-8"))
 lua.execute((ROOT / "tests/edge_tls_client_test.lua").read_text(encoding="utf-8"))
 lua.execute('package.loaded["sha2"] = nil; load = nil')
 sha = lua.eval('require("sha2").sha256')
@@ -74,3 +75,8 @@ assert speaker["preferences"] == profile["preferences"]
 assert speaker["components"][0]["capabilities"] == main["capabilities"]
 assert speaker["components"][0]["categories"] == [{"name": "Speaker"}]
 print("PASS icon profiles retain identical controls and pairing preferences")
+
+child_profile = yaml.safe_load((ROOT / "edge-driver/profiles/app-volume.yml").read_text())
+assert [c["id"] for c in child_profile["components"][0]["capabilities"]] == ["audioVolume", "audioMute"]
+assert "preferences" not in child_profile
+print("PASS child profile is volume/mute only")

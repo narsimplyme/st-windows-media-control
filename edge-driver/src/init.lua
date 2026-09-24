@@ -5,6 +5,7 @@ local socket = require "cosock.socket"
 local log = require "log"
 local client = require "client"
 local protocol = require "protocol"
+local children = require "app_children"
 local workers = {}
 local SLOT = "st-mediabridge-manual-v1"
 local creating = false
@@ -45,7 +46,8 @@ local function remember(device, config)
     deviceId=config.id, token=config.token}, {persist=true})
   if config.certificate then device:set_field("tlsTrust", {ip=config.ip, port=config.port, certificate=config.certificate}, {persist=true}) end
 end
-local function restart(_, device)
+local function restart(driver, device)
+  if children.is_child(device) then device:offline(); return end
   creating = false
   local candidate = workers[device.id] and workers[device.id].candidate
   local approval = device.preferences.approveCertificate == true
@@ -80,6 +82,7 @@ local function restart(_, device)
   local worker = {refresh = true, config=config}
   workers[device.id] = worker -- Invalidates old requests on preference changes/removal.
   device:offline()
+  children.offline(device)
   if not config then
     log.info("ST Windows Media Control: enter the PC address and 8-digit pairing code in Settings")
     return
@@ -131,6 +134,7 @@ local function restart(_, device)
       if not ok then state, err = nil, "request failed" end
       if state and not protocol.valid(state, config.id) then state, err = nil, "invalid state or device ID mismatch" end
       if state then
+        children.sync(driver, device, state.apps)
         if not worker.savedTrust then remember(device, config); worker.savedTrust = true end
         if last_error then log.info("ST Windows Media Control: connection restored") end
         last_error, delay = nil, 1
@@ -143,6 +147,7 @@ local function restart(_, device)
         socket.sleep(0.1) -- Bound event rate while the volume wheel is turning.
       else
         device:offline()
+        children.offline(device)
         if err ~= last_error then log.warn("ST Windows Media Control: " .. (err or "connection failed")) end
         last_error = err
         socket.sleep(delay)
@@ -155,6 +160,13 @@ local function restart(_, device)
 end
 
 local function command(device, name, value)
+  local appKey
+  if children.is_child(device) then
+    appKey = children.key(device)
+    if not appKey or not ({setVolume=true, adjustVolume=true, setMute=true})[name] then return end
+    device = device:get_parent_device()
+    if not device then return end
+  end
   local worker = workers[device.id]
   if worker and worker.candidate and not worker.config.certificate then
     return
@@ -163,7 +175,7 @@ local function command(device, name, value)
   if not config or not config.token then return end
   -- These handlers run in the device's ordered coroutine. The long-poll has its
   -- own coroutine, so it cannot stall commands. Never replay a timed-out skip.
-  local ok, result, err = pcall(client.request, config, "/v1/command", {command=name, value=value})
+  local ok, result, err = pcall(client.request, config, appKey and "/v1/apps/command" or "/v1/command", {command=name, value=value, key=appKey})
   if not ok or not result then log.warn("ST Windows Media Control: command " .. name .. " failed (" .. (ok and err or "network") .. ")") end
 end
 local function simple(name) return function(_, device) command(device, name) end end
@@ -190,7 +202,7 @@ Driver("st-mediabridge", {
   lifecycle_handlers = {
     init = restart,
     infoChanged = restart,
-    removed = function(_, device) workers[device.id] = nil end,
+    removed = function(_, device) workers[device.id] = nil; children.removed(device) end,
   },
   supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh},
   capability_handlers = {
