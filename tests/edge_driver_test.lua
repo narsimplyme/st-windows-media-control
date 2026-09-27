@@ -2,7 +2,7 @@
 -- Complements, but does not replace, an actual hub test.
 local captured, spawned, posts = nil, {}, {}
 local caps = {}
-for _, name in ipairs({"audioVolume", "audioMute", "mediaPlayback", "mediaTrackControl", "audioTrackData", "refresh"}) do
+for _, name in ipairs({"oceangarden54575.appName", "audioVolume", "audioMute", "mediaPlayback", "mediaTrackControl", "audioTrackData", "refresh"}) do
   local id = name
   caps[id] = setmetatable({ID=id}, {__index=function(_, attribute)
     return function(value) return {capability=id, attribute=attribute, value=value} end
@@ -11,7 +11,7 @@ end
 package.loaded["st.capabilities"] = caps
 package.loaded["log"] = {info=function() end, warn=function() end}
 package.loaded["cosock"] = {spawn=function(fn) spawned[#spawned+1] = coroutine.create(fn) end}
-package.loaded["cosock.socket"] = {sleep=function() coroutine.yield("sleep") end}
+package.loaded["cosock.socket"] = {gettime=function() return 100 end, sleep=function() coroutine.yield("sleep") end}
 package.loaded["client"] = {request=function(config, path, body)
   if path == "/v1/pair" then return coroutine.yield("pair", body.code) end
   if body then body.path=path; posts[#posts+1]=body; return {accepted=true} end
@@ -23,6 +23,9 @@ package.loaded["st.driver"] = function(_, definition)
 end
 local preferences = {pcAddress="192.168.1.20", pcPort=8765, token=string.rep("a",32), deviceId="12345678-1234-1234-1234-123456789abc"}
 local device = {id="test", preferences=preferences, events={}, device_network_id="st-mediabridge-manual-v1"}
+device.profile = {components={}}
+for i=1,5 do device.profile.components["app"..i]={id="app"..i} end
+function device:emit_component_event(component,event) event.component=component.id; self:emit_event(event) end
 device.fields = {tlsTrust={ip=preferences.pcAddress, port=preferences.pcPort, certificate="test-certificate"}}
 device.metadataRequests = 0
 function device:get_field(key) return self.fields[key] end
@@ -149,23 +152,24 @@ local saved = device:get_field("pairingCredentials")
 assert(saved.token == string.rep("b",32) and saved.code == code)
 captured.capability_handlers.audioVolume.setVolume(driver,device,{args={volume=20}})
 assert(posts[#posts].value == 20, "commands use saved internal credential")
-local appChild = {network_type="LAN",parent_assigned_child_key=string.rep("a",64),
-    get_parent_device=function() return device end, label="User renamed this"}
-captured.capability_handlers.audioVolume.setVolume(driver,appChild,{args={volume=25}})
-assert(posts[#posts].path=="/v1/apps/command" and posts[#posts].key==appChild.parent_assigned_child_key and posts[#posts].value==25)
-captured.capability_handlers.audioMute.mute(driver,appChild)
+local key=string.rep("a",64)
+local components=require "app_components"
+components.sync(driver,device,{{slot=1,key=key,name="Spotify",active=true,volume=70,muted=false}})
+captured.capability_handlers.audioVolume.setVolume(driver,device,{component="app1",args={volume=25}})
+assert(posts[#posts].path=="/v1/apps/command" and posts[#posts].key==key and posts[#posts].slot==1)
+captured.capability_handlers.audioMute.mute(driver,device,{component="app1"})
 assert(posts[#posts].command=="setMute" and posts[#posts].value==true)
-local childFields, childProfile = {}, nil
-appChild.get_field=function(_,k) return childFields[k] end
-appChild.set_field=function(_,k,v) childFields[k]=v end
-appChild.try_update_metadata=function(_,m) childProfile=m.profile end
-appChild.offline=function() end
-local workerCount=#spawned
-captured.lifecycle_handlers.init(driver,appChild)
-assert(childProfile=="app-volume" and #spawned==workerCount, "child wrapper is never initialized as a parent even without EDGE_CHILD network_type")
-local beforeChildPlayback=#posts
-captured.capability_handlers.mediaPlayback.play(driver,appChild,{command="play"})
-assert(#posts==beforeChildPlayback, "child cannot route media playback to parent")
+local before=#posts
+captured.capability_handlers.mediaPlayback.play(driver,device,{component="app1",command="play"})
+captured.capability_handlers.audioVolume.volumeUp(driver,device,{component="app2"})
+assert(#posts==before,"empty slots and app playback cannot control parent")
+components.sync(driver,device,{})
+captured.capability_handlers.audioVolume.setVolume(driver,device,{component="app1",args={volume=25}})
+assert(#posts==before,"cleared slot cannot send commands")
+local legacy={parent_assigned_child_key=key,offline=function() end}
+captured.lifecycle_handlers.init(driver,legacy)
+captured.capability_handlers.audioVolume.setVolume(driver,legacy,{args={volume=25}})
+assert(#posts==before,"retired child cannot send commands")
 
 captured.lifecycle_handlers.init(driver,device)
 assert(step(spawned[#spawned]) == "request", "restart reuses saved credentials without pairing again")

@@ -15,7 +15,7 @@ for path in (ROOT / "edge-driver/src").glob("*.lua"):
 lua.execute((ROOT / "tests/edge_protocol_test.lua").read_text(encoding="utf-8"))
 lua.globals().TEST_ROOT = ROOT.as_posix()
 lua.execute((ROOT / "tests/edge_driver_test.lua").read_text(encoding="utf-8"))
-lua.execute((ROOT / "tests/edge_children_test.lua").read_text(encoding="utf-8"))
+lua.execute((ROOT / "tests/edge_components_test.lua").read_text(encoding="utf-8"))
 lua.execute((ROOT / "tests/edge_tls_client_test.lua").read_text(encoding="utf-8"))
 lua.execute('package.loaded["sha2"] = nil; load = nil')
 sha = lua.eval('require("sha2").sha256')
@@ -26,10 +26,10 @@ print("PASS SHA256 known vectors with Edge-style disabled dynamic loading")
 for path in (ROOT / "edge-driver").rglob("*.yml"):
     yaml.safe_load(path.read_text(encoding="utf-8"))
 profile = yaml.safe_load((ROOT / "edge-driver/profiles/media-bridge.yml").read_text(encoding="utf-8"))
-assert len(profile["components"]) == 1
+assert len(profile["components"]) == 6
 assert {c["id"] for c in profile["components"][0]["capabilities"]} == {
     "audioVolume", "audioMute", "mediaPlayback", "mediaTrackControl", "audioTrackData", "refresh"}
-print("PASS YAML and one-device media-only profile")
+print("PASS YAML and one-device main media profile")
 preferences = {p["name"]: p for p in profile["preferences"]}
 defaults = {}
 for name, preference in preferences.items():
@@ -79,4 +79,10 @@ print("PASS icon profiles retain identical controls and pairing preferences")
 child_profile = yaml.safe_load((ROOT / "edge-driver/profiles/app-volume.yml").read_text())
 assert [c["id"] for c in child_profile["components"][0]["capabilities"]] == ["audioVolume", "audioMute"]
 assert "preferences" not in child_profile
-print("PASS child profile is volume/mute only")
+print("PASS retired migration profile is volume/mute only")
+
+for parent in [profile, speaker]:
+    for i, component in enumerate(parent["components"][1:], 1):
+        assert component["id"] == f"app{i}" and component["label"] == f"App {i}"
+        assert [c["id"] for c in component["capabilities"]] == ["oceangarden54575.appName", "audioVolume", "audioMute"]
+print("PASS five static app components with no playback or switch")

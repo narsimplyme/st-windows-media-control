@@ -22,6 +22,51 @@ components:
         version: 1
     categories:
       - name: SmartMonitor
+  - id: app1
+    label: App 1
+    capabilities:
+      - id: oceangarden54575.appName
+        version: 1
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+  - id: app2
+    label: App 2
+    capabilities:
+      - id: oceangarden54575.appName
+        version: 1
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+  - id: app3
+    label: App 3
+    capabilities:
+      - id: oceangarden54575.appName
+        version: 1
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+  - id: app4
+    label: App 4
+    capabilities:
+      - id: oceangarden54575.appName
+        version: 1
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
+  - id: app5
+    label: App 5
+    capabilities:
+      - id: oceangarden54575.appName
+        version: 1
+      - id: audioVolume
+        version: 1
+      - id: audioMute
+        version: 1
 preferences:
   - name: pcAddress
     title: PC IP 주소 (IPv4)

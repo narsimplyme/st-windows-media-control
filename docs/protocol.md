@@ -112,21 +112,24 @@ Album artwork serving has been removed. The media snapshot retains the album tit
 
 ## Selected app volume channels
 
-The snapshot adds `apps`, an array containing only apps selected in the local
-Companion UI. Each item has `key` (64 lowercase hexadecimal SHA-256 characters),
-`name`, `active` (a non-expired audio session exists), `volume` (0–100), and
-`muted` (boolean). Selection and native session changes wake the same revision
-long poll as parent audio/media changes. The driver reconciles children on every
-valid snapshot, including heartbeat snapshots. Missing `apps` from an older
-companion is not treated as an empty selection. Invalid or duplicate entries
-reject the whole snapshot before reconciliation. Responses are capped at 64 KiB,
-and the local UI allows up to 64 selected apps.
+Snapshots include `appsVersion: 2` and `apps`, an array of zero to five selected
+apps. Every item has `slot` (integer 1–5), `key` (64 lowercase SHA-256 hex
+characters), `name`, `active` (a non-expired session exists), `volume` (0–100),
+and `muted` (boolean). Missing slots are explicitly cleared by Edge to
+`Not configured`, volume 0, unmuted. Inactive selected apps retain their names
+and slot but show 0/unmuted until a session reconnects. Selection and session
+changes wake the same revision long poll as main audio/media updates. Duplicate
+slots/keys or malformed version-2 arrays reject the entire snapshot. Older
+companions still support main controls but cannot bind app components.
 
-`POST /v1/apps/command` accepts `{ "key": "<app key>", "command": "setVolume",
-"value": 25 }`, `adjustVolume` (integer −100…100), or `setMute` (boolean).
-It uses the existing source filtering, bearer authentication, TLS, and 1 KiB body
-limit. Unknown, unselected, or absent-session apps return 409; malformed commands
-return 400. The network API cannot change exposure or launch a process.
+`POST /v1/apps/command` accepts `{ "slot": 1, "key": "<app key>",
+"command": "setVolume", "value": 25 }`, `adjustVolume` (integer −100…100),
+or `setMute` (boolean). It retains source filtering, bearer authentication,
+verified TLS and the 1 KiB body limit. Both slot and key must match the current
+local selection; validation and audio writes are atomic with deselection.
+Stale mappings, unselected apps and absent sessions return 409. Malformed
+commands return 400. Missing/invalid slots never fall back to master volume.
+The network API cannot select apps or launch processes. Commands are not queued.
 
 A packaged app is identified by AppUserModelID when available; desktop apps use
 the full executable path, normalized case-insensitively before hashing. PID is
@@ -143,11 +146,12 @@ stable session ordering. Adjust-volume applies one group target to every session
 Commands are not queued for absent apps. Session creation/volume/state and endpoint
 notifications drive updates; a 20-second scan repairs missed notifications.
 
-Selected apps remain in the snapshot with `active:false` when they exit. Their
-EDGE_CHILD devices go offline, retaining their identity and last known values.
-Only deselection removes them. A checked app creates an `app-volume` child with
-`parent_assigned_child_key=key`; a user-renamed label is preserved. Unchecking
-uses `try_delete_device`. Creation/deletion requests are throttled while awaiting
-asynchronous lifecycle updates and reconciled again after reconnect. Checking
-again after deletion creates a new child. Automation references to the deleted
-child are therefore not retained.
+Selections and slots are saved atomically in the private `audio-apps.json`.
+Deselection sets only that app's slot to 0; the next selection takes the lowest
+free slot. No sorting or compaction changes existing assignments. Legacy selected
+entries without slots migrate once in saved order, keeping the first five (any
+excess remain in history, unselected). Edge never creates app child devices.
+On a valid version-2 synchronization, only matching legacy app children belonging
+to this parent are retired, with retry throttling. The old `app-volume` profile
+is retained solely so installed legacy children can finish migration. Their old
+Routine references do not transfer; configure Routines against the fixed components.

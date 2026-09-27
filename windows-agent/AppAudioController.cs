@@ -101,29 +101,31 @@ public sealed class AppAudioController(AppCatalog catalog, ILogger<AppAudioContr
         foreach (var key in last.Keys.Where(x => !values.ContainsKey(x)).ToArray()) last.Remove(key);
         catalog.Observe(apps.Values, values.Values);
     }
-    public bool Set(string key, int? volume = null, bool? muted = null, int? delta = null)
+    public bool Set(string key, int? volume = null, bool? muted = null, int? delta = null, int? slot = null)
     {
         lock (gate)
         {
-            if (!catalog.IsExposed(key)) return false;
-            var targets = sessions.Values.Where(x => x.App.Key == key).ToArray();
-            var applied = 0;
-            var current = catalog.Read().FirstOrDefault(x => x.App.Key == key)?.State.Volume ?? 0;
-            var targetVolume = delta.HasValue ? Math.Clamp(current + delta.Value, 0, 100) : volume;
-            foreach (var session in targets)
+            return catalog.WithSelection(key, slot, () =>
             {
-                try
+                var targets = sessions.Values.Where(x => x.App.Key == key).ToArray();
+                var applied = 0;
+                var current = catalog.Read().FirstOrDefault(x => x.App.Key == key)?.State.Volume ?? 0;
+                var targetVolume = delta.HasValue ? Math.Clamp(current + delta.Value, 0, 100) : volume;
+                foreach (var session in targets)
                 {
-                    if (session.Control.State == AudioSessionState.AudioSessionStateExpired) continue;
-                    if (targetVolume.HasValue) session.Control.SimpleAudioVolume.Volume = targetVolume.Value / 100f;
-                    if (muted.HasValue) session.Control.SimpleAudioVolume.Mute = muted.Value;
-                    var v = session.Control.SimpleAudioVolume;
-                    last[key] = ((int)Math.Round(v.Volume * 100), v.Mute); applied++;
+                    try
+                    {
+                        if (session.Control.State == AudioSessionState.AudioSessionStateExpired) continue;
+                        if (targetVolume.HasValue) session.Control.SimpleAudioVolume.Volume = targetVolume.Value / 100f;
+                        if (muted.HasValue) session.Control.SimpleAudioVolume.Mute = muted.Value;
+                        var v = session.Control.SimpleAudioVolume;
+                        last[key] = ((int)Math.Round(v.Volume * 100), v.Mute); applied++;
+                    }
+                    catch (Exception) { ScanSoon(); }
                 }
-                catch (Exception) { ScanSoon(); }
-            }
-            Publish();
-            return applied > 0;
+                Publish();
+                return applied > 0;
+            });
         }
     }
     protected override async Task ExecuteAsync(CancellationToken ct)

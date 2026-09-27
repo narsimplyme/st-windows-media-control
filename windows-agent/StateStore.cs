@@ -7,6 +7,7 @@ public record MediaState(bool Available = false, string Playback = "stopped",
     bool CanPrevious = false, bool CanToggle = false, string Album = "");
 public record Snapshot(string DeviceId, string Epoch, long Revision, AudioState Audio, MediaState Media)
 {
+    public int AppsVersion => 2;
     public AppVolumeState[] Apps { get; init; } = [];
 }
 

@@ -72,9 +72,12 @@ Developed using OpenAI Codex.
 
 ## App volume controls
 
-Open the Windows tray menu → **App Volume Controls** and check the apps to expose.
-Each selection creates **PC <App name>** in SmartThings with volume and mute only.
-Play audio once to discover an app. Previously discovered apps remain selectable
-when closed. Closing an app retains its child; unchecking it deletes the child.
-Windows Volume Mixer changes sync back to SmartThings. The existing parent keeps
-master volume, mute, playback controls, and track information.
+Open the Windows tray menu → **App Volume Controls** and select up to five apps.
+They appear as **App 1–5 inside the existing device**, with an app name, volume,
+and mute. Play audio once, then click **Refresh apps** to discover an app.
+The list refreshes only when opened or requested, without continuous flicker.
+Selections survive app exit and Companion restart. Unchecking frees that slot;
+other assignments never move. A new selection uses the first empty slot.
+Windows Volume Mixer changes sync back through audio callbacks. The main controls
+retain master volume, mute, playback, and track information.
+See [app component setup and migration](docs/app-components.md).

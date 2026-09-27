@@ -58,16 +58,17 @@ try
     await Until(() => { var c = Controls(first.Id, second.Id); var n=c.Length; foreach(var x in c)x.Dispose(); return n>=2; }, "two real Windows sessions for one executable");
     // Wait for both callbacks to be processed before issuing the grouped command.
     await Task.Delay(300);
-    if (controller.Set(key, volume:25)) throw new Exception("unexposed app accepted a command");
+    if (controller.Set(key, volume:25, slot:1)) throw new Exception("unexposed app accepted a command");
     catalog.SetExposed(key,true);
-    if (!controller.Set(key, volume:25)) throw new Exception("volume command rejected");
+    if (controller.Set(key,volume:80,slot:2)) throw new Exception("wrong slot accepted");
+    if (!controller.Set(key, volume:25, slot:1)) throw new Exception("volume command rejected");
     await Until(() => { var c=Controls(first.Id,second.Id); var ok=c.Length>=2 && c.All(x=>Math.Abs(x.SimpleAudioVolume.Volume-.25)<.01); foreach(var x in c)x.Dispose(); return ok; }, "all grouped sessions receive 25 percent");
     var external = Controls(first.Id,second.Id);
     try
     {
         external[0].SimpleAudioVolume.Volume=.7f;
         await Until(() => state.Read().Apps.Single().Volume==70, "Windows volume callback updates shared snapshot");
-        if (!controller.Set(key,muted:true) || external.Any(x=>!x.SimpleAudioVolume.Mute)) throw new Exception("mute did not reach all sessions");
+        if (!controller.Set(key,muted:true,slot:1) || external.Any(x=>!x.SimpleAudioVolume.Mute)) throw new Exception("mute did not reach all sessions");
         Console.WriteLine("PASS mute reaches every grouped session");
         external[0].SimpleAudioVolume.Mute=false;
         await Until(() => !state.Read().Apps.Single().Muted, "Windows unmute callback updates shared snapshot");
@@ -76,6 +77,8 @@ try
     first.StandardInput.WriteLine(); second.StandardInput.WriteLine();
     await first.WaitForExitAsync(); await second.WaitForExitAsync();
     await Until(() => !state.Read().Apps.Single().Active, "process exit keeps selected app but marks session absent");
+    if (controller.Set(key,volume:80,slot:1)) throw new Exception("absent app accepted command");
+    if (state.Read().Apps.Single().Slot != 1) throw new Exception("exit lost slot");
     var again = StartSession();
     await Until(() => state.Read().Apps.Single().Active, "process restart reconnects same app key");
     if (state.Read().Apps.Single().Key != key) throw new Exception("app key changed after restart");

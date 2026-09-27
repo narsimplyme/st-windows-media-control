@@ -162,6 +162,26 @@ try
     Check(appState.Read().Apps.Length == 0 && restarted.Read().Length == 1, "uncheck removes exposure but retains discovery history");
     restarted.SetExposed(key, true);
     Check(appState.Read().Apps.Single().Key == key, "previously discovered inactive app can be reselected");
+    var apps = Enumerable.Range(1, 6).Select(i => new SavedAudioApp(AppCatalog.KeyFor("test" + i), "App " + i, "test.exe")).ToArray();
+    restarted.Observe(apps, []);
+    for (var i = 0; i < 4; i++) restarted.SetExposed(apps[i].Key, true);
+    Check(appState.Read().Apps.Select(x => x.Slot).SequenceEqual(new[] { 1, 2, 3, 4, 5 }), "five stable slots allocated");
+    try { restarted.SetExposed(apps[4].Key, true); throw new Exception("sixth app accepted"); }
+    catch (InvalidOperationException) { Check(true, "sixth selection rejected"); }
+    restarted.SetExposed(apps[0].Key, false);
+    Check(appState.Read().Apps.Select(x => x.Slot).SequenceEqual(new[] { 1, 3, 4, 5 }), "deselection does not compact slots");
+    restarted.SetExposed(apps[4].Key, true);
+    Check(appState.Read().Apps.Single(x => x.Key == apps[4].Key).Slot == 2, "new app uses first empty slot");
+    Check(!restarted.WithSelection(apps[0].Key, 2, () => throw new Exception("stale command ran")), "stale key rejected after reassignment");
+    Check(!restarted.WithSelection(apps[4].Key, 3, () => true), "wrong slot rejected");
+    var beforeRestart = appState.Read().Apps.Select(x => (x.Key, x.Slot)).ToArray();
+    _ = new AppCatalog(appPath, appState);
+    Check(appState.Read().Apps.Select(x => (x.Key, x.Slot)).SequenceEqual(beforeRestart), "restart retains exact slot mapping");
+    File.WriteAllText(appPath, System.Text.Json.JsonSerializer.Serialize(apps.Take(3).Select(x => x with { Exposed = true })));
+    _ = new AppCatalog(appPath, appState);
+    Check(appState.Read().Apps.Select(x => x.Slot).SequenceEqual(new[] { 1, 2, 3 }), "legacy selections migrate once in saved order");
+    Console.WriteLine($"{checks} total checks including fixed app slots passed");
+
 }
 finally { if (File.Exists(appPath)) File.Delete(appPath); Directory.Delete(Path.GetDirectoryName(appPath)!); }
 

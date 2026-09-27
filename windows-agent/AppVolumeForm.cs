@@ -11,14 +11,15 @@ internal sealed class AppVolumeForm : Form
         AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 10); Padding = new Padding(16);
         var help = new Label { Dock = DockStyle.Top, Height = 58,
-            Text = TrayContext.T("체크하면 SmartThings에 PC <앱 이름>이 생성됩니다.\n체크를 해제하면 해당 기기가 삭제됩니다. 앱을 종료해도 선택은 유지됩니다.",
-                "Check an app to create PC <App name> in SmartThings.\nUncheck to delete its device. Selections remain when apps close.") };
+            Text = TrayContext.T("최대 5개 앱을 SmartThings 기기의 App 1~5에 연결합니다.\n체크 해제 시 해당 슬롯만 비워집니다. 앱을 종료해도 선택은 유지됩니다.",
+                "Select up to 5 apps for App 1–5 inside your SmartThings device.\nUnchecking frees only that slot. Selections remain when apps close.") };
         var list = new ListView { Dock = DockStyle.Fill, View = View.Details, CheckBoxes = true,
             FullRowSelect = true, HideSelection = false, SmallImageList = icons };
-        list.Columns.Add(TrayContext.T("앱", "App"), 320);
+        list.Columns.Add(TrayContext.T("앱", "App"), 235);
         list.Columns.Add(TrayContext.T("오디오 세션", "Audio session"), 145);
         list.Columns.Add(TrayContext.T("음량", "Volume"), 75);
         list.Columns.Add(TrayContext.T("음소거", "Muted"), 90);
+        list.Columns.Add(TrayContext.T("슬롯", "Slot"), 80);
         var hint = new Label { Dock = DockStyle.Bottom, Height = 32,
             Text = TrayContext.T("앱에서 소리를 재생한 뒤 ‘앱 새로고침’을 누르세요.",
                 "Play audio in an app, then click Refresh apps.") };
@@ -38,7 +39,7 @@ internal sealed class AppVolumeForm : Form
                     if (item is null)
                     {
                         item = new ListViewItem(row.App.Name) { Name = row.App.Key };
-                        item.SubItems.AddRange(new[] { "", "", "" });
+                        item.SubItems.AddRange(new[] { "", "", "", "" });
                         try
                         {
                             var appIcon = Icon.ExtractAssociatedIcon(row.App.ExecutablePath);
@@ -47,6 +48,7 @@ internal sealed class AppVolumeForm : Form
                         catch (Exception) { }
                         list.Items.Add(item);
                     }
+                    item.SubItems[4].Text = row.App.Slot == 0 ? "—" : "App " + row.App.Slot;
                     item.Text = row.App.Name; item.Checked = row.App.Exposed;
                     item.SubItems[1].Text = row.State.Active ? TrayContext.T("있음", "Available") : TrayContext.T("없음", "Not running");
                     item.SubItems[2].Text = row.State.Active ? row.State.Volume + "%" : "—";
@@ -58,7 +60,13 @@ internal sealed class AppVolumeForm : Form
         list.ItemCheck += (_, e) =>
         {
             if (updating) return;
-            try { catalog.SetExposed(list.Items[e.Index].Name, e.NewValue == CheckState.Checked); }
+            try
+            {
+                var item = list.Items[e.Index];
+                catalog.SetExposed(item.Name, e.NewValue == CheckState.Checked);
+                var slot = catalog.Read().Single(x => x.App.Key == item.Name).App.Slot;
+                item.SubItems[4].Text = slot == 0 ? "—" : "App " + slot;
+            }
             catch (Exception ex)
             {
                 e.NewValue = e.CurrentValue;

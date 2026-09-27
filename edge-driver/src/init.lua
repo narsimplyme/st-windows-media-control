@@ -5,7 +5,7 @@ local socket = require "cosock.socket"
 local log = require "log"
 local client = require "client"
 local protocol = require "protocol"
-local children = require "app_children"
+local components = require "app_components"
 local workers = {}
 local SLOT = "st-mediabridge-manual-v1"
 local creating = false
@@ -47,15 +47,7 @@ local function remember(device, config)
   if config.certificate then device:set_field("tlsTrust", {ip=config.ip, port=config.port, certificate=config.certificate}, {persist=true}) end
 end
 local function restart(driver, device)
-  if children.is_child(device) then
-    if device:get_field("requestedIconProfile") ~= "app-volume" then
-      device:set_field("requestedIconProfile", "app-volume")
-      local ok = pcall(device.try_update_metadata, device, {profile="app-volume"})
-      if not ok then device:set_field("requestedIconProfile", nil) end
-    end
-    device:offline()
-    return
-  end
+  if components.is_legacy_child(device) then device:offline(); return end
   creating = false
   local candidate = workers[device.id] and workers[device.id].candidate
   local approval = device.preferences.approveCertificate == true
@@ -90,7 +82,7 @@ local function restart(driver, device)
   local worker = {refresh = true, config=config}
   workers[device.id] = worker -- Invalidates old requests on preference changes/removal.
   device:offline()
-  children.offline(device)
+  components.reset(device)
   if not config then
     log.info("ST Windows Media Control: enter the PC address and 8-digit pairing code in Settings")
     return
@@ -142,7 +134,6 @@ local function restart(driver, device)
       if not ok then state, err = nil, "request failed" end
       if state and not protocol.valid(state, config.id) then state, err = nil, "invalid state or device ID mismatch" end
       if state then
-        children.sync(driver, device, state.apps)
         if not worker.savedTrust then remember(device, config); worker.savedTrust = true end
         if last_error then log.info("ST Windows Media Control: connection restored") end
         last_error, delay = nil, 1
@@ -152,10 +143,14 @@ local function restart(driver, device)
         elseif state.audio.available then
           device:online()
         end
+        if not previous or state.epoch == previous.epoch and state.revision >= previous.revision then
+          if state.appsVersion == 2 then components.sync(driver, device, state.apps, true)
+          else components.sync(driver, device, {}) end
+        end
         socket.sleep(0.1) -- Bound event rate while the volume wheel is turning.
       else
         device:offline()
-        children.offline(device)
+        components.reset(device)
         if err ~= last_error then log.warn("ST Windows Media Control: " .. (err or "connection failed")) end
         last_error = err
         socket.sleep(delay)
@@ -167,13 +162,14 @@ local function restart(driver, device)
   end, "mediabridge-state-" .. device.id)
 end
 
-local function command(device, name, value)
-  local appKey
-  if children.is_child(device) then
-    appKey = children.key(device)
-    if not appKey or not ({setVolume=true, adjustVolume=true, setMute=true})[name] then return end
-    device = device:get_parent_device()
-    if not device then return end
+local function command(device, name, value, component)
+  if components.is_legacy_child(device) then return end
+  component = component or "main"
+  local binding
+  if component ~= "main" then
+    if not ({setVolume=true, adjustVolume=true, setMute=true})[name] then return end
+    binding = components.binding(device, component)
+    if not binding then return end
   end
   local worker = workers[device.id]
   if worker and worker.candidate and not worker.config.certificate then
@@ -183,16 +179,16 @@ local function command(device, name, value)
   if not config or not config.token then return end
   -- These handlers run in the device's ordered coroutine. The long-poll has its
   -- own coroutine, so it cannot stall commands. Never replay a timed-out skip.
-  local ok, result, err = pcall(client.request, config, appKey and "/v1/apps/command" or "/v1/command", {command=name, value=value, key=appKey})
+  local ok, result, err = pcall(client.request, config, binding and "/v1/apps/command" or "/v1/command", {command=name, value=value, key=binding and binding.key, slot=binding and binding.slot})
   if not ok or not result then log.warn("ST Windows Media Control: command " .. name .. " failed (" .. (ok and err or "network") .. ")") end
 end
-local function simple(name) return function(_, device) command(device, name) end end
+local function simple(name) return function(_, device, cmd) command(device, name, nil, cmd and cmd.component) end end
 local function playback(name)
   return function(_, device, cmd)
     -- Some standard Speaker cards send stop even with a play/pause profile.
     -- Treat that as pause, never toggle: repeated taps must not resume audio.
     log.info("ST Windows Media Control: playback " .. cmd.command .. " -> " .. name)
-    command(device, name)
+    command(device, name, nil, cmd.component)
   end
 end
 local function discovery(driver)
@@ -210,19 +206,19 @@ Driver("st-mediabridge", {
   lifecycle_handlers = {
     init = restart,
     infoChanged = restart,
-    removed = function(_, device) workers[device.id] = nil; children.removed(device) end,
+    removed = function(_, device) workers[device.id] = nil end,
   },
-  supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh},
+  supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh, components.capability},
   capability_handlers = {
     [caps.audioVolume.ID] = {
-      setVolume = function(_, d, c) command(d, "setVolume", c.args.volume) end,
-      volumeUp = function(_, d) command(d, "adjustVolume", 5) end,
-      volumeDown = function(_, d) command(d, "adjustVolume", -5) end,
+      setVolume = function(_, d, c) command(d, "setVolume", c.args.volume, c.component) end,
+      volumeUp = function(_, d, c) command(d, "adjustVolume", 5, c and c.component) end,
+      volumeDown = function(_, d, c) command(d, "adjustVolume", -5, c and c.component) end,
     },
     [caps.audioMute.ID] = {
-      mute = function(_, d) command(d, "setMute", true) end,
-      unmute = function(_, d) command(d, "setMute", false) end,
-      setMute = function(_, d, c) command(d, "setMute", c.args.state == "muted") end,
+      mute = function(_, d, c) command(d, "setMute", true, c and c.component) end,
+      unmute = function(_, d, c) command(d, "setMute", false, c and c.component) end,
+      setMute = function(_, d, c) command(d, "setMute", c.args.state == "muted", c.component) end,
     },
     [caps.mediaPlayback.ID] = {play = playback("play"), pause = playback("pause"), stop = playback("pause")},
     [caps.mediaTrackControl.ID] = {nextTrack = simple("next"), previousTrack = simple("previous")},

@@ -169,18 +169,19 @@ app.MapPost("/v1/apps/command", async (HttpContext ctx, AppAudioController audio
             || key.ValueKind != JsonValueKind.String || key.GetString() is not { Length: 64 } appKey
             || appKey.Any(c => !char.IsAsciiHexDigit(c)) || !root.TryGetProperty("command", out var cmd)
             || cmd.ValueKind != JsonValueKind.String || !root.TryGetProperty("value", out var value)) return Results.BadRequest();
+        if (!root.TryGetProperty("slot", out var slotValue) || !slotValue.TryGetInt32Safe(out var slot) || slot is < 1 or > 5) return Results.BadRequest();
         bool accepted;
         switch (cmd.GetString())
         {
             case "setVolume":
                 if (!value.TryGetInt32Safe(out var volume) || volume is < 0 or > 100) return Results.BadRequest();
-                accepted = audio.Set(appKey, volume: volume); break;
+                accepted = audio.Set(appKey, slot: slot, volume: volume); break;
             case "adjustVolume":
                 if (!value.TryGetInt32Safe(out var delta) || delta is < -100 or > 100) return Results.BadRequest();
-                accepted = audio.Set(appKey, delta: delta); break;
+                accepted = audio.Set(appKey, slot: slot, delta: delta); break;
             case "setMute":
                 if (value.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) return Results.BadRequest();
-                accepted = audio.Set(appKey, muted: value.GetBoolean()); break;
+                accepted = audio.Set(appKey, slot: slot, muted: value.GetBoolean()); break;
             default: return Results.BadRequest();
         }
         return accepted ? Results.Ok(new { accepted = true }) : Results.Conflict(new { accepted = false });

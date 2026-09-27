@@ -1,0 +1,21 @@
+{
+  "name": "App Name",
+  "attributes": {
+    "appName": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "maxLength": 160
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ]
+      }
+    }
+  },
+  "commands": {}
+}

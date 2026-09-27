@@ -96,10 +96,10 @@ with tempfile.TemporaryDirectory(prefix="st-mediabridge-") as directory:
         for command in ["shutdown", "run", "anything"]:
             assert request("/v1/command", {"command": command})[0] == 400
         assert isinstance(state["apps"], list) and state["apps"] == []
-        app_command = {"key": "a" * 64, "command": "setVolume", "value": 25}
+        app_command = {"slot": 1, "key": "a" * 64, "command": "setVolume", "value": 25}
         assert request("/v1/apps/command", app_command, auth="")[0] == 401
         assert request("/v1/apps/command", app_command)[0] == 409  # unselected / unknown
-        for bad in [{**app_command, "key": "bad"}, {**app_command, "value": 101},
+        for bad in [{**app_command, "slot": 0}, {**app_command, "slot": 6}, {**app_command, "slot": None}, {**app_command, "key": "bad"}, {**app_command, "value": 101},
                     {**app_command, "value": True}, {**app_command, "command": "run"},
                     {**app_command, "command": "setMute", "value": "false"}]:
             assert request("/v1/apps/command", bad)[0] == 400
