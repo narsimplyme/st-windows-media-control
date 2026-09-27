@@ -1,0 +1,25 @@
+{
+  "dashboard": {
+    "states": [],
+    "actions": []
+  },
+  "detailView": [
+    {
+      "label": "{{appName.value}}",
+      "displayType": "slider",
+      "slider": {
+        "value": "volume.value",
+        "command": "setVolume",
+        "range": [
+          0,
+          100
+        ],
+        "step": 1
+      }
+    }
+  ],
+  "automation": {
+    "conditions": [],
+    "actions": []
+  }
+}

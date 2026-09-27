@@ -8,12 +8,6 @@ components:
         version: 1
       - id: mediaPlayback
         version: 1
-        config:
-          values:
-            - key: playbackStatus.value
-              enabledValues: [playing, paused, stopped]
-            - key: '{{enumCommands}}'
-              enabledValues: [play, pause]
       - id: mediaTrackControl
         version: 1
       - id: audioTrackData
@@ -25,7 +19,7 @@ components:
   - id: app1
     label: App 1
     capabilities:
-      - id: oceangarden54575.appName
+      - id: oceangarden54575.appVolume
         version: 1
       - id: audioVolume
         version: 1
@@ -34,7 +28,7 @@ components:
   - id: app2
     label: App 2
     capabilities:
-      - id: oceangarden54575.appName
+      - id: oceangarden54575.appVolume
         version: 1
       - id: audioVolume
         version: 1
@@ -43,7 +37,7 @@ components:
   - id: app3
     label: App 3
     capabilities:
-      - id: oceangarden54575.appName
+      - id: oceangarden54575.appVolume
         version: 1
       - id: audioVolume
         version: 1
@@ -52,7 +46,7 @@ components:
   - id: app4
     label: App 4
     capabilities:
-      - id: oceangarden54575.appName
+      - id: oceangarden54575.appVolume
         version: 1
       - id: audioVolume
         version: 1
@@ -61,7 +55,7 @@ components:
   - id: app5
     label: App 5
     capabilities:
-      - id: oceangarden54575.appName
+      - id: oceangarden54575.appVolume
         version: 1
       - id: audioVolume
         version: 1
@@ -124,3 +118,7 @@ preferences:
     preferenceType: boolean
     definition:
       default: false
+
+metadata:
+  vid: 3fb6164a-55cc-3434-a17b-44d5f99558d9
+  mnmn: SmartThingsCommunity

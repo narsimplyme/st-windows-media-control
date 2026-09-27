@@ -1,0 +1,472 @@
+{
+  "mnmn": "SmartThingsCommunity",
+  "type": "profile",
+  "dashboard": {
+    "states": [
+      {
+        "component": "main",
+        "capability": "audioVolume",
+        "version": 1,
+        "idx": 0,
+        "group": "main",
+        "values": [],
+        "composite": false
+      }
+    ],
+    "actions": [
+      {
+        "component": "main",
+        "capability": "audioVolume",
+        "version": 1,
+        "idx": 0,
+        "group": "main",
+        "inline": null
+      }
+    ],
+    "basicPlus": []
+  },
+  "detailView": [
+    {
+      "component": "main",
+      "capability": "audioVolume",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "main",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "main",
+      "capability": "mediaPlayback",
+      "version": 1,
+      "values": [
+        {
+          "enabledValues": [
+            "playing",
+            "paused",
+            "stopped"
+          ],
+          "step": 1,
+          "key": "setPlaybackStatus"
+        },
+        {
+          "enabledValues": [
+            "play",
+            "pause"
+          ],
+          "step": 1,
+          "key": "{{enumCommands}}"
+        }
+      ],
+      "patch": []
+    },
+    {
+      "component": "main",
+      "capability": "mediaTrackControl",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "main",
+      "capability": "audioTrackData",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "main",
+      "capability": "refresh",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "app1",
+      "capability": "oceangarden54575.appVolume",
+      "version": 1
+    },
+    {
+      "component": "app1",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "app2",
+      "capability": "oceangarden54575.appVolume",
+      "version": 1
+    },
+    {
+      "component": "app2",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "app3",
+      "capability": "oceangarden54575.appVolume",
+      "version": 1
+    },
+    {
+      "component": "app3",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "app4",
+      "capability": "oceangarden54575.appVolume",
+      "version": 1
+    },
+    {
+      "component": "app4",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    },
+    {
+      "component": "app5",
+      "capability": "oceangarden54575.appVolume",
+      "version": 1
+    },
+    {
+      "component": "app5",
+      "capability": "audioMute",
+      "version": 1,
+      "values": [],
+      "patch": []
+    }
+  ],
+  "automation": {
+    "conditions": [
+      {
+        "component": "main",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "mediaPlayback",
+        "version": 1,
+        "values": [
+          {
+            "enabledValues": [
+              "playing",
+              "paused",
+              "stopped"
+            ],
+            "step": 1,
+            "key": "playbackStatus.value"
+          },
+          {
+            "enabledValues": [
+              "play",
+              "pause"
+            ],
+            "step": 1,
+            "key": "{{enumCommands}}"
+          }
+        ],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "mediaTrackControl",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "audioTrackData",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app1",
+        "capability": "oceangarden54575.appName",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app1",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app1",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app2",
+        "capability": "oceangarden54575.appName",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app2",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app2",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app3",
+        "capability": "oceangarden54575.appName",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app3",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app3",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app4",
+        "capability": "oceangarden54575.appName",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app4",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app4",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app5",
+        "capability": "oceangarden54575.appName",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app5",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app5",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      }
+    ],
+    "actions": [
+      {
+        "component": "main",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "mediaPlayback",
+        "version": 1,
+        "values": [
+          {
+            "enabledValues": [
+              "playing",
+              "paused",
+              "stopped"
+            ],
+            "step": 1,
+            "key": "setPlaybackStatus"
+          },
+          {
+            "enabledValues": [
+              "play",
+              "pause"
+            ],
+            "step": 1,
+            "key": "{{enumCommands}}"
+          }
+        ],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "mediaTrackControl",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "main",
+        "capability": "refresh",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app1",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app1",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app2",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app2",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app3",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app3",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app4",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app4",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app5",
+        "capability": "audioVolume",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      },
+      {
+        "component": "app5",
+        "capability": "audioMute",
+        "version": 1,
+        "values": [],
+        "patch": [],
+        "exclusion": []
+      }
+    ]
+  }
+}

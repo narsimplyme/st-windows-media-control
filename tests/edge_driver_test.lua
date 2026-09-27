@@ -2,7 +2,7 @@
 -- Complements, but does not replace, an actual hub test.
 local captured, spawned, posts = nil, {}, {}
 local caps = {}
-for _, name in ipairs({"oceangarden54575.appName", "audioVolume", "audioMute", "mediaPlayback", "mediaTrackControl", "audioTrackData", "refresh"}) do
+for _, name in ipairs({"oceangarden54575.appVolume", "audioVolume", "audioMute", "mediaPlayback", "mediaTrackControl", "audioTrackData", "refresh"}) do
   local id = name
   caps[id] = setmetatable({ID=id}, {__index=function(_, attribute)
     return function(value) return {capability=id, attribute=attribute, value=value} end
@@ -159,7 +159,10 @@ captured.capability_handlers.audioVolume.setVolume(driver,device,{component="app
 assert(posts[#posts].path=="/v1/apps/command" and posts[#posts].key==key and posts[#posts].slot==1)
 captured.capability_handlers.audioMute.mute(driver,device,{component="app1"})
 assert(posts[#posts].command=="setMute" and posts[#posts].value==true)
+captured.capability_handlers["oceangarden54575.appVolume"].setVolume(driver,device,{component="app1",args={volume=42}})
+assert(posts[#posts].slot==1 and posts[#posts].value==42 and posts[#posts].path=="/v1/apps/command")
 local before=#posts
+captured.capability_handlers["oceangarden54575.appVolume"].setVolume(driver,device,{component="main",args={volume=42}})
 captured.capability_handlers.mediaPlayback.play(driver,device,{component="app1",command="play"})
 captured.capability_handlers.audioVolume.volumeUp(driver,device,{component="app2"})
 assert(#posts==before,"empty slots and app playback cannot control parent")
