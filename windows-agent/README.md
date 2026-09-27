@@ -168,3 +168,7 @@ next to `agent.json`. Apps without a current session remain selectable.
 The matching Edge driver creates/deletes volume-only children on reconnect.
 Changes use Core Audio session events, never GSMTC. See `docs/protocol.md` for
 identity, multi-session aggregation, and lifecycle semantics.
+
+The App Volume Controls list refreshes when opened or when **Refresh apps** is
+clicked. It does not redraw on a timer. Background audio discovery and SmartThings
+volume/mute synchronization continue independently.

@@ -2,7 +2,6 @@ namespace STMediaBridge;
 
 internal sealed class AppVolumeForm : Form
 {
-    private readonly System.Windows.Forms.Timer timer = new() { Interval = 500 };
     private readonly ImageList icons = new() { ImageSize = new Size(24, 24), ColorDepth = ColorDepth.Depth32Bit };
     private readonly List<Icon> ownedIcons = new();
     public AppVolumeForm(AppCatalog catalog)
@@ -21,9 +20,12 @@ internal sealed class AppVolumeForm : Form
         list.Columns.Add(TrayContext.T("음량", "Volume"), 75);
         list.Columns.Add(TrayContext.T("음소거", "Muted"), 90);
         var hint = new Label { Dock = DockStyle.Bottom, Height = 32,
-            Text = TrayContext.T("앱이 없으면 소리를 한 번 재생하세요. 허브 연결 후 선택이 반영됩니다.",
-                "Play audio to discover an app. Selections sync when the hub is connected.") };
-        Controls.Add(list); Controls.Add(help); Controls.Add(hint);
+            Text = TrayContext.T("앱에서 소리를 재생한 뒤 ‘앱 새로고침’을 누르세요.",
+                "Play audio in an app, then click Refresh apps.") };
+        var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 42 };
+        var refresh = new Button { Text = TrayContext.T("앱 새로고침", "Refresh apps"), AutoSize = true };
+        toolbar.Controls.Add(refresh);
+        Controls.Add(list); Controls.Add(toolbar); Controls.Add(help); Controls.Add(hint);
         var updating = false;
         void RefreshApps()
         {
@@ -63,12 +65,11 @@ internal sealed class AppVolumeForm : Form
                 MessageBox.Show(ex.Message, ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         };
-        timer.Tick += (_, _) => RefreshApps();
-        RefreshApps(); timer.Start();
+        refresh.Click += (_, _) => RefreshApps();
+        RefreshApps();
     }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) timer.Dispose();
         base.Dispose(disposing);
         if (disposing) { icons.Dispose(); foreach (var icon in ownedIcons) icon.Dispose(); }
     }

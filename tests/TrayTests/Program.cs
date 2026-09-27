@@ -145,6 +145,12 @@ internal static class Program
             appList.Items[chrome.Key]!.Checked = false;
             Check(!appCatalog.IsExposed(chrome.Key), "UI uncheck removes exposure");
             appList.Items[spotify.Key]!.Checked = true;
+            appCatalog.Observe([spotify, chrome], [new(spotify.Key, "Spotify", true, 25, false)]);
+            Check(appList.Items[spotify.Key]!.SubItems[2].Text == "70%", "catalog changes leave displayed list untouched until refresh");
+            Descendants(appWindow).OfType<Button>().Single(b => b.Text is "Refresh apps" or "앱 새로고침").PerformClick();
+            Check(appList.Items[spotify.Key]!.SubItems[2].Text == "25%" && appList.Items[spotify.Key]!.Checked,
+                "manual refresh updates volume and preserves exposure selection");
+
             using var appPreview = new Bitmap(appWindow.Width, appWindow.Height);
             appWindow.DrawToBitmap(appPreview, new Rectangle(Point.Empty, appPreview.Size));
             appPreview.Save(Path.Combine(Path.GetDirectoryName(output)!, "app-volumes-preview.png"));
