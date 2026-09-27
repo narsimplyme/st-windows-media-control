@@ -83,7 +83,7 @@ confirmed app1 volume/mute in the phone UI. Spotify-specific testing was not run
 exit/restart and multi-session grouping used dedicated silent test processes.
 
 Named-slider update: custom command routing and generated presentation checks pass.
-The test hub is using presentation `3fb6164a-55cc-3434-a17b-44d5f99558d9`.
+The test hub is using presentation `eac9f635-60d2-349a-ab58-054d4a7d23d9`.
 Its app components expose the named slider and mute only. Android dynamic title
 rendering still requires phone confirmation; server acceptance alone is insufficient.
 No live volume/mute changes were issued while deploying this UI update.

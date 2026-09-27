@@ -209,14 +209,6 @@
       },
       {
         "component": "app1",
-        "capability": "oceangarden54575.appName",
-        "version": 1,
-        "values": [],
-        "patch": [],
-        "exclusion": []
-      },
-      {
-        "component": "app1",
         "capability": "audioVolume",
         "version": 1,
         "values": [],
@@ -233,14 +225,6 @@
       },
       {
         "component": "app2",
-        "capability": "oceangarden54575.appName",
-        "version": 1,
-        "values": [],
-        "patch": [],
-        "exclusion": []
-      },
-      {
-        "component": "app2",
         "capability": "audioVolume",
         "version": 1,
         "values": [],
@@ -257,14 +241,6 @@
       },
       {
         "component": "app3",
-        "capability": "oceangarden54575.appName",
-        "version": 1,
-        "values": [],
-        "patch": [],
-        "exclusion": []
-      },
-      {
-        "component": "app3",
         "capability": "audioVolume",
         "version": 1,
         "values": [],
@@ -281,14 +257,6 @@
       },
       {
         "component": "app4",
-        "capability": "oceangarden54575.appName",
-        "version": 1,
-        "values": [],
-        "patch": [],
-        "exclusion": []
-      },
-      {
-        "component": "app4",
         "capability": "audioVolume",
         "version": 1,
         "values": [],
@@ -298,14 +266,6 @@
       {
         "component": "app4",
         "capability": "audioMute",
-        "version": 1,
-        "values": [],
-        "patch": [],
-        "exclusion": []
-      },
-      {
-        "component": "app5",
-        "capability": "oceangarden54575.appName",
         "version": 1,
         "values": [],
         "patch": [],
