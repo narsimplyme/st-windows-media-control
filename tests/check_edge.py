@@ -64,11 +64,9 @@ assert preferences["pairingCode"]["definition"] == {"minimum": 0, "maximum": 999
 main = profile["components"][0]
 assert main["id"] == "main" and main["categories"] == [{"name": "SmartMonitor"}]
 playback = next(c for c in main["capabilities"] if c["id"] == "mediaPlayback")
-import json
-config = json.loads((ROOT / "edge-driver/presentations/app-volume-device-config.json").read_text())
-playback_view = next(c for c in config["detailView"] if c["component"] == "main" and c["capability"] == "mediaPlayback")
-assert next(v for v in playback_view["values"] if v["key"] == "{{enumCommands}}")["enabledValues"] == ["play", "pause"]
-assert "config" not in playback, "embedded config must not override the explicit device presentation"
+assert playback["config"]["values"] == [
+    {"key": "playbackStatus.value", "enabledValues": ["playing", "paused", "stopped"]},
+    {"key": "{{enumCommands}}", "enabledValues": ["play", "pause"]}]
 assert all(c["version"] == 1 for c in main["capabilities"])
 print("PASS profile preference bounds/defaults, unpaired sentinels and presentation configuration")
 
@@ -86,15 +84,10 @@ print("PASS retired migration profile is volume/mute only")
 for parent in [profile, speaker]:
     for i, component in enumerate(parent["components"][1:], 1):
         assert component["id"] == f"app{i}" and component["label"] == f"App {i}"
-        assert [c["id"] for c in component["capabilities"]] == ["oceangarden54575.appVolume", "audioVolume", "audioMute"]
+        assert [c["id"] for c in component["capabilities"]] == ["oceangarden54575.appName", "audioVolume", "audioMute"]
 print("PASS five static app components with no playback or switch")
 
-for i in range(1, 6):
-    detail = [c["capability"] for c in config["detailView"] if c["component"] == f"app{i}"]
-    assert detail == ["oceangarden54575.appVolume", "audioMute"]
-    assert any(c["component"] == f"app{i}" and c["capability"] == "audioVolume" for c in config["automation"]["actions"])
-slider = json.loads((ROOT / "edge-driver/capabilities/appVolume.presentation.json").read_text())["detailView"]
-assert len(slider) == 1 and slider[0]["label"] == "{{appName.value}}"
-assert slider[0]["slider"]["command"] == "setVolume" and slider[0]["slider"]["range"] == [0, 100]
-assert profile["metadata"] == speaker["metadata"]
-print("PASS named app slider, no duplicate cards and standard volume automation preserved")
+for parent in [profile, speaker]:
+    assert "vid" not in parent.get("metadata", {}), "retired experimental presentation must not return"
+    assert all(c["id"] != "oceangarden54575.appVolume" for component in parent["components"] for c in component["capabilities"])
+print("PASS native app volume cards restored without experimental slider")

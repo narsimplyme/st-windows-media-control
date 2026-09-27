@@ -210,11 +210,6 @@ Driver("st-mediabridge", {
   },
   supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh, components.capability},
   capability_handlers = {
-    [components.capability.ID] = {
-      setVolume = function(_, d, c)
-        if c.component and c.component:match("^app[1-5]$") then command(d, "setVolume", c.args.volume, c.component) end
-      end,
-    },
     [caps.audioVolume.ID] = {
       setVolume = function(_, d, c) command(d, "setVolume", c.args.volume, c.component) end,
       volumeUp = function(_, d, c) command(d, "adjustVolume", 5, c and c.component) end,

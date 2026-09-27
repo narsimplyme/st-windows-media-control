@@ -1,21 +1,15 @@
 # Fixed app volume components
 
 Both monitor and speaker profiles contain main plus app1–app5. Main is unchanged.
-Each app component has `oceangarden54575.appVolume` v1, audioVolume v1 and
-audioMute v1. App Volume contains read-only appName, integer volume (0–100), and
-setVolume. Its detail-view slider uses `{{appName.value}}` as its title. The
-explicit device presentation shows only that slider and mute; standard audioVolume
-remains available for existing Routine/API commands and synchronization.
-Headers remain App 1–5 and may be renamed by the user in the phone app.
-The previous appName capability is retained in source as a legacy definition only.
+Each app component has only `oceangarden54575.appName` v1, audioVolume v1 and
+audioMute v1. Headers remain App 1–5; the custom string attribute `appName`
+has no commands and a detail-view `state` presentation (`{{appName.value}}`).
+There are no media capabilities on app components. Layout is generated through
+the public profile/presentation APIs, not a mobile UI workaround.
 
-Definition: `edge-driver/capabilities/appVolume.json`.
-Presentation: `edge-driver/capabilities/appVolume.presentation.json`.
-Layout: `edge-driver/presentations/app-volume-device-config.json`.
-Both parent profiles reference the registered presentation via metadata vid/mnmn.
-Do not add embedded capability config alongside it: packaging would generate a
-replacement presentation and restore duplicate standard volume cards.
-Main playback constraints are included in the explicit layout instead.
+Definition: `edge-driver/capabilities/appName.json`.
+Presentation: `edge-driver/capabilities/appName.presentation.json`.
+The capability and presentation are already registered for this project's namespace.
 
 ## Update commands (PowerShell)
 
@@ -24,15 +18,13 @@ returned capability ID in both parent profiles and `src/app_components.lua`:
 
 ```powershell
 smartthings capabilities:namespaces
-smartthings capabilities:create --namespace YOUR_NAMESPACE --input .\edge-driver\capabilities\appVolume.json
+smartthings capabilities:create --namespace YOUR_NAMESPACE --input .\edge-driver\capabilities\appName.json
 ```
 
 For this repository, upload the presentation if changed (do not create duplicates):
 
 ```powershell
-smartthings capabilities:presentation:create oceangarden54575.appVolume --capability-version 1 --input .\edge-driver\capabilities\appVolume.presentation.json
-smartthings presentation:device-config:create --input .\edge-driver\presentations\app-volume-device-config.json
-# If the returned vid changes, update metadata.vid in BOTH parent profiles before packaging.
+smartthings capabilities:presentation:create oceangarden54575.appName --capability-version 1 --input .\edge-driver\capabilities\appName.presentation.json
 smartthings edge:drivers:package .\edge-driver --channel 312aff0b-0bd7-40a8-9f4a-9bec56f56c1f --hub e08ef4f8-d11e-481c-8699-85ad307bfdb4
 smartthings devices:commands 064ec46d-7ad5-44fc-b5b0-114685c5fc6a 'refresh:refresh()'
 ```
@@ -82,8 +74,12 @@ worked in both directions. Original 37%/unmuted was restored. The user also
 confirmed app1 volume/mute in the phone UI. Spotify-specific testing was not run;
 exit/restart and multi-session grouping used dedicated silent test processes.
 
-Named-slider update: custom command routing and generated presentation checks pass.
-The test hub is using presentation `eac9f635-60d2-349a-ab58-054d4a7d23d9`.
-Its app components expose the named slider and mute only. Android dynamic title
-rendering still requires phone confirmation; server acceptance alone is insufficient.
-No live volume/mute changes were issued while deploying this UI update.
+## Android named-slider experiment
+
+On 2026-09-27, a separate appVolume capability combined appName with a volume
+slider whose presentation label was `{{appName.value}}`. The API accepted the
+presentation, but the user's Android app displayed a generic App Volume card
+and a separate native mute card. It did not produce the requested named native
+volume card. The experiment was reverted; both profiles again use audioVolume,
+audioMute and the separate read-only appName card. No Companion or protocol
+changes were needed. Do not treat API presentation acceptance as mobile UI validation.
