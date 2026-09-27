@@ -90,7 +90,10 @@ public sealed class StartupSettings : IStartupSettings
             ((dynamic)service!).Connect();
             folder = ((dynamic)service!).GetFolder(@"\");
             try { task = ((dynamic)folder).GetTask(taskName); }
-            catch (COMException ex) when (ex.HResult == unchecked((int)0x80070002)) { return false; }
+            // The dynamic COM binder can map FILE_NOT_FOUND to FileNotFoundException.
+            // Only a missing task is benign; keep access/service failures visible.
+            catch (Exception ex) when ((ex is COMException or FileNotFoundException) &&
+                ex.HResult == unchecked((int)0x80070002)) { return false; }
             return action(task!);
         }
         finally

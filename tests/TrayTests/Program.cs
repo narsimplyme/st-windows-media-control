@@ -26,6 +26,17 @@ internal static class Program
             Check(!startup.Enabled, "startup can be disabled");
             startup.SetEnabled(false);
             Check(!startup.Enabled, "repeated disable is harmless");
+            // A clean installation has no legacy scheduled task. Exercise real COM
+            // lookup with a unique missing name, without altering any existing task.
+            var freshStartup = new StartupSettings(executable, configPath, testKey,
+                taskName: "STWMC-Missing-Test-" + Guid.NewGuid().ToString("N"), approvedKey: null);
+            Check(!freshStartup.Enabled, "missing legacy task means startup is disabled");
+            freshStartup.SetEnabled(false);
+            freshStartup.SetEnabled(true);
+            Check(freshStartup.Enabled, "fresh install registers startup without a legacy task");
+            freshStartup.SetEnabled(false);
+            Check(!freshStartup.Enabled, "fresh install can disable startup without a legacy task");
+
         }
         finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(testKey, false); }
         // Dummy credentials only. Never load installed configuration or touch clipboard.
