@@ -208,7 +208,7 @@ Driver("st-mediabridge", {
     infoChanged = restart,
     removed = function(_, device) workers[device.id] = nil end,
   },
-  supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh, components.capability},
+  supported_capabilities = {caps.audioVolume, caps.audioMute, caps.mediaPlayback, caps.mediaTrackControl, caps.audioTrackData, caps.refresh},
   capability_handlers = {
     [caps.audioVolume.ID] = {
       setVolume = function(_, d, c) command(d, "setVolume", c.args.volume, c.component) end,

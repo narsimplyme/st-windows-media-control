@@ -68,7 +68,7 @@ Long polling is event delivery, not an aggressive timer querying Windows. Each h
 | `audioTrackData` | title, artist, mediaSource; optional and cleared on session loss |
 | `refresh` | Restart the state request loop |
 
-The main component uses standard media capabilities. Five fixed app components add a read-only custom appName plus standard audioVolume/audioMute; no power switch, manager device or new child devices. Standard presentation is preferred over an exact handcrafted layout. The API exposes toggle for diagnostic/other local callers; the Edge device exposes explicit standard play and pause commands.
+The main component uses standard media capabilities. Five fixed app components provide standard audioVolume/audioMute with manually named headings matched to the Companion Slot column; no power switch, manager device or new child devices. Standard presentation is preferred over an exact handcrafted layout. The API exposes toggle for diagnostic/other local callers; the Edge device exposes explicit standard play and pause commands.
 
 One coroutine per paired device receives snapshots; command handlers use the ordered device coroutine. Only the receiver applies state, avoiding command-response versus event-response races. Settings changes create a new generation; responses from the old generation are ignored. Duplicate/lower revisions within an epoch do not roll back state. A new epoch is accepted immediately.
 

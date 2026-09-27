@@ -1,7 +1,6 @@
 local caps = require "st.capabilities"
 local socket = require "cosock.socket"
 local M = {}
-M.capability = caps["oceangarden54575.appName"]
 function M.is_legacy_child(device)
   local key = device.parent_assigned_child_key
   return type(key) == "string" and #key == 64 and not key:find("[^0-9a-f]")
@@ -19,8 +18,6 @@ function M.sync(driver, device, apps, retireLegacy)
     local before = old[id]
     local component = device.profile.components[id]
     if component then
-      -- Explicit refresh must also repair names missed during profile propagation.
-      if not before or before.name ~= app.name then device:emit_component_event(component, M.capability.appName(app.name, {state_change=true})) end
       local volume, muted = app.active and app.volume or 0, app.active and app.muted or false
       if not before or before.volume ~= volume then device:emit_component_event(component, caps.audioVolume.volume(volume)) end
       if not before or before.muted ~= muted then device:emit_component_event(component, caps.audioMute.mute(muted and "muted" or "unmuted")) end

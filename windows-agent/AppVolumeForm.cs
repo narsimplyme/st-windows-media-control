@@ -10,9 +10,9 @@ internal sealed class AppVolumeForm : Form
         ClientSize = new Size(740, 480); MinimumSize = new Size(600, 350);
         AutoScaleMode = AutoScaleMode.Dpi; StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 10); Padding = new Padding(16);
-        var help = new Label { Dock = DockStyle.Top, Height = 58,
-            Text = TrayContext.T("최대 5개 앱을 SmartThings 기기의 App 1~5에 연결합니다.\n체크 해제 시 해당 슬롯만 비워집니다. 앱을 종료해도 선택은 유지됩니다.",
-                "Select up to 5 apps for App 1–5 inside your SmartThings device.\nUnchecking frees only that slot. Selections remain when apps close.") };
+        var help = new Label { Dock = DockStyle.Top, Height = 86,
+            Text = TrayContext.T("최대 5개 앱을 SmartThings 기기의 App 1~5에 연결합니다.\n아래 슬롯 번호를 보고 SmartThings의 연필 버튼으로 앱 이름을 직접 지정하세요.\n체크 해제 시 해당 슬롯만 비워집니다. 앱을 종료해도 선택은 유지됩니다.",
+                "Select up to 5 apps for App 1–5 inside your SmartThings device.\nMatch the Slot column to App 1–5 and use the SmartThings pencil to name each app.\nUnchecking frees only that slot. Selections remain when apps close.") };
         var list = new ListView { Dock = DockStyle.Fill, View = View.Details, CheckBoxes = true,
             FullRowSelect = true, HideSelection = false, SmallImageList = icons };
         list.Columns.Add(TrayContext.T("앱", "App"), 235);

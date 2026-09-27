@@ -84,7 +84,7 @@ print("PASS retired migration profile is volume/mute only")
 for parent in [profile, speaker]:
     for i, component in enumerate(parent["components"][1:], 1):
         assert component["id"] == f"app{i}" and component["label"] == f"App {i}"
-        assert [c["id"] for c in component["capabilities"]] == ["oceangarden54575.appName", "audioVolume", "audioMute"]
+        assert [c["id"] for c in component["capabilities"]] == ["audioVolume", "audioMute"]
 print("PASS five static app components with no playback or switch")
 
 for parent in [profile, speaker]:

@@ -4,7 +4,7 @@
 
 ST Windows Media Control connects a SmartThings Edge hub directly to a small Windows companion. One device provides master volume, mute, play/pause, and previous/next track. Windows audio changes are sent back immediately using Core Audio notifications. Compatible media apps supply playback state and metadata through Windows GSMTC.
 
-**Status: experimental; playback and volume tested with a real SmartThings hub and Android app.** It is not a certified SmartThings integration. See [validation status](docs/testing.md).
+**Version 1.0 — playback and volume tested with a real SmartThings hub and Android app.** It is not a certified SmartThings integration. See [validation status](docs/testing.md).
 
 ## Features
 
@@ -27,7 +27,7 @@ Samsung 계정 로그인 → 허브 선택 → Enroll → Available Drivers에�
 
 Requirements: Windows 10 with GSMTC support (1809 API baseline) or Windows 11; a supported SmartThings Edge hub on the LAN; a signed-in Windows user. Building from source requires the SDK pinned in `global.json`; the standalone EXE includes its runtime. Use a currently supported Windows/.NET environment.
 
-1. Run the standalone Windows EXE. Select the detected PC address, choose whether to start at sign-in, and approve the firewall prompt. Developers can [build the EXE](windows-agent/README.md).
+1. Download the Windows x64 EXE from [Releases](https://github.com/narsimplyme/st-windows-media-control/releases/latest) and run it. Select the detected PC address, choose whether to start at sign-in, and approve the firewall prompt. Developers can [build the EXE](windows-agent/README.md).
 2. [Enroll and install the matching Edge driver](edge-driver/README.md), then enter the PC address and 8-digit pairing code.
 3. Compare all four certificate groups on the PC and SmartThings music card. Only when they match, toggle **Confirm certificate** in device settings.
 4. Rename the single device to **ST Windows Media Control — Gaming PC**.
@@ -73,8 +73,11 @@ Developed using OpenAI Codex.
 ## App volume controls
 
 Open the Windows tray menu → **App Volume Controls** and select up to five apps.
-They appear as **App 1–5 inside the existing device**, with an app name, volume,
-and mute. Play audio once, then click **Refresh apps** to discover an app.
+They appear as **App 1–5 inside the existing device**, with volume and mute.
+Match the Companion’s **Slot** column to each SmartThings section and tap its
+pencil icon to enter the app name manually. There is no separate App Name card.
+PC의 **슬롯** 번호를 확인하고 SmartThings의 해당 App 옆 연필 버튼으로 이름을 직접 지정하세요.
+슬롯에 다른 앱을 연결하면 SmartThings의 이름도 직접 바꿔 주세요. Play audio once, then click **Refresh apps** to discover an app.
 The list refreshes only when opened or requested, without continuous flicker.
 Selections survive app exit and Companion restart. Unchecking frees that slot;
 other assignments never move. A new selection uses the first empty slot.
