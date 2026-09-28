@@ -10,8 +10,8 @@ After the verified exchange succeeds, trust and credentials survive hub restarts
 A changed certificate is never accepted automatically. To recheck intentionally,
 toggle **Verify certificate again** in device settings and compare again.
 
-The HTTPS development build is currently validated on a separate test channel;
-the existing public Enroll channel is updated separately when the build is released.
+The public Enroll channel provides the HTTPS driver. Development builds are
+validated on a separate test channel before public release.
 
 One manually paired LAN device uses one `main` component with `audioVolume`, `audioMute`, `mediaPlayback`, `mediaTrackControl`, `audioTrackData`, and `refresh`. There is no switch/power capability or separate manager device. Standard presentation is generated from the profile; no custom capability namespace or presentation publication is required.
 
@@ -40,13 +40,13 @@ Do not combine `--install` and `--hub`; the installed CLI treats them as conflic
 
 ## Pair
 
-1. Build/start the Windows companion and add its hub-restricted firewall rule.
+1. Run the Windows companion and complete its setup and firewall approval.
 2. In the SmartThings app choose **Add device → Scan nearby**. The driver's discovery handler creates **ST Windows Media Control**. This is a manual pairing slot, not an automatic LAN scan.
 3. Open the device's three-dot menu → **Settings** and enter the PC IPv4 address and the **8-digit pairing code** shown in the PC tray → Pairing information. Leave the port at 8765 unless changed.
-4. Rename the device, for example **ST Windows Media Control — Gaming PC**.
+4. Compare all four certificate groups with the PC pairing window and toggle **Confirm certificate** only if they match. You can rename the device, for example **ST Windows Media Control — Gaming PC**.
 5. Wait for current volume/mute state, then test the slider and an external Windows volume change.
 
-The user-facing code contains exactly **10 decimal digits** and expires after ten minutes.
+The user-facing code contains exactly **8 decimal digits** and expires after ten minutes.
 The driver exchanges it for internal credentials and saves those in persistent device fields;
 once connected, code expiry and ordinary restarts do not require re-pairing. The zero address
 and zero code defaults mean unpaired. Opening the PC pairing window or clicking **New code**
