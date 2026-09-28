@@ -39,6 +39,36 @@ internal static class Program
 
         }
         finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(testKey, false); }
+        var firewall = new FirewallSetup("192.168.1.20", 8765, "12345678-1234-1234-1234-123456789abc");
+        var elevated = firewall.Elevation(@"C:\Test App\agent.exe");
+        Check(elevated.Verb == "runas" && elevated.ArgumentList.Count == 4 &&
+            !elevated.ArgumentList.Contains("--config"), "UAC receives public firewall parameters only");
+        var parsedFirewall = FirewallSetup.Parse(elevated.ArgumentList.ToArray());
+        Check(parsedFirewall == firewall, "elevated helper parses parameters without reading user files");
+        var commands = new List<string[]>();
+        parsedFirewall.Apply(@"C:\Test App\agent.exe", command => { commands.Add(command); return commands.Count == 2; });
+        Check(commands.Count == 2 && commands[0][2] == "set" && commands[1][2] == "add", "firewall updates existing rule or creates missing rule");
+        Check(commands.All(c => c.Contains("profile=private") && c.Contains("remoteip=LocalSubnet") &&
+            c.Contains("localip=192.168.1.20") && c.Contains("localport=8765") && c.Contains(@"program=C:\Test App\agent.exe")),
+            "cross-account firewall preserves interface, subnet, port and executable restrictions");
+        commands.Clear();
+        parsedFirewall.Apply(@"C:\Test App\agent.exe", command => { commands.Add(command); return true; });
+        Check(commands.Count == 1, "existing firewall rule does not create duplicates");
+        foreach (var bad in new[] {
+            new[] { "--configure-firewall", "0.0.0.0", "8765", firewall.RuleId },
+            new[] { "--configure-firewall", "192.168.1.20/24", "8765", firewall.RuleId },
+            new[] { "--configure-firewall", "224.0.0.1", "8765", firewall.RuleId },
+            new[] { "--configure-firewall", "192.168.1.20", "80", firewall.RuleId },
+            new[] { "--configure-firewall", "192.168.1.20", "65536", firewall.RuleId },
+            new[] { "--configure-firewall", "192.168.1.20", "8765", "bad-id" },
+            new[] { "--configure-firewall", "192.168.1.20", "8765", firewall.RuleId, "--config", "private.json" } })
+        {
+            try { FirewallSetup.Parse(bad); throw new Exception("Accepted invalid firewall arguments"); }
+            catch (InvalidDataException) { }
+        }
+        Check(true, "elevated helper rejects malformed, wildcard and extra arguments");
+        try { parsedFirewall.Apply(@"C:\Test App\agent.exe", _ => false); throw new Exception("Silenced firewall failure"); }
+        catch (IOException) { Check(true, "failed firewall commands remain failures"); }
         // Dummy credentials only. Never load installed configuration or touch clipboard.
         var config = new AgentConfig("12345678-1234-1234-1234-123456789abc", new string('a', 32), "192.168.50.170");
         var state = new StateStore(config.DeviceId);

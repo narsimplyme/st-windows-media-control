@@ -8,7 +8,9 @@ a private TLS certificate. Choose whether to start at Windows sign-in and approv
 the firewall elevation prompt. No manual JSON editing, SDK, or runtime is needed.
 The firewall rule is limited to the selected interface, port, application, local
 subnet and Private network profile. If elevation is canceled, retry **Configure
-firewall** from the tray menu. Administrator credentials are needed for that step.
+firewall** from the tray menu. Administrator credentials are needed for that step. A different administrator
+account can approve the EXE firewall helper: it receives only the public IP, port
+and rule ID, and never reads your private configuration or certificate.
 
 Open SmartThings settings, enter the PC address and 8-digit code, then compare
 all four certificate groups on its music card with the PC pairing window. Toggle **Confirm certificate** in SmartThings settings only when they match. The hub address, certificate
@@ -172,3 +174,11 @@ identity, multi-session aggregation, and lifecycle semantics.
 The App Volume Controls list refreshes when opened or when **Refresh apps** is
 clicked. It does not redraw on a timer. Background audio discovery and SmartThings
 volume/mute synchronization continue independently.
+
+## Recover after the hub IP changes
+
+Open the PC tray → Reset pairing, then enter the new code in SmartThings.
+This revokes the old credentials and clears the remembered hub IP for HTTPS
+enrollment while preserving the PC certificate, listener and firewall rule ID.
+The new hub address must be on the selected local subnet. Merely generating a
+new code does not remove an established hub restriction.

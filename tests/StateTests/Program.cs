@@ -108,7 +108,11 @@ try
         Check(cert.Thumbprint == thumbprint, "TLS provisioning never replaces existing trust");
     var keyFile = new FileInfo(Path.Combine(tlsDirectory, "server-tls.pfx"));
     Check(keyFile.GetAccessControl().AreAccessRulesProtected, "TLS private key has protected ACL from creation");
-    AgentConfig.RegenerateIdentity(tlsConfig);
+    AgentConfig.ReplacePrivate(tlsConfig, AgentConfig.Load(tlsConfig) with { HubAddress = "192.168.1.30" });
+    var enrolled = AgentConfig.Load(tlsConfig);
+    var reenroll = AgentConfig.RegenerateIdentity(tlsConfig);
+    Check(reenroll.HubAddress == "" && AgentConfig.Load(tlsConfig).HubAddress == "", "TLS reset clears old DHCP hub address for re-enrollment");
+    Check(reenroll.Token != enrolled.Token && reenroll.BindAddress == enrolled.BindAddress && reenroll.Port == enrolled.Port, "reset revokes old credentials while preserving listener");
     Check(AgentConfig.Load(tlsConfig).TlsEnabled, "pairing reset preserves HTTPS requirement");
     using (var cert = TlsIdentity.Load(tlsConfig))
         Check(cert.Thumbprint == thumbprint, "pairing reset preserves PC certificate");

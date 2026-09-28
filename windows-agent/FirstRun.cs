@@ -106,19 +106,17 @@ internal static class FirstRun
 
     public static void RequestFirewall(string configPath)
     {
-        var info = new ProcessStartInfo(Executable) { UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden };
-        info.ArgumentList.Add("--configure-firewall"); info.ArgumentList.Add("--config"); info.ArgumentList.Add(configPath);
+        var config = AgentConfig.Load(configPath); // Read as the original user, before elevation.
+        var info = new FirewallSetup(config.BindAddress, config.Port, config.FirewallRuleId ?? config.DeviceId).Elevation(Executable);
         using var process = Process.Start(info) ?? throw new IOException("Firewall setup could not start.");
         process.WaitForExit();
         if (process.ExitCode != 0) throw new IOException("Firewall setup failed.");
     }
 
-    public static void ConfigureFirewall(string configPath)
+    public static void ConfigureFirewall(string[] args)
     {
         if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) throw new UnauthorizedAccessException();
-        var config = AgentConfig.Load(configPath);
-        var id = config.FirewallRuleId ?? config.DeviceId;
-        if (!Guid.TryParseExact(id, "D", out var parsed) || parsed == Guid.Empty) throw new InvalidDataException("Invalid firewall ID.");
+        var setup = FirewallSetup.Parse(args);
         // No shell command interpolation: netsh receives separate, validated arguments.
         bool Netsh(params string[] args)
         {
@@ -127,12 +125,6 @@ internal static class FirstRun
             using var process = Process.Start(start)!; process.WaitForExit();
             return process.ExitCode == 0;
         }
-        var name = "name=STMediaBridge-" + id;
-        // Update the exact UUID-named rule; repeated setup must not add duplicates.
-        var settings = new[] { "dir=in", "action=allow", "protocol=TCP", "profile=private",
-            "localip=" + config.BindAddress, "localport=" + config.Port, "remoteip=LocalSubnet", "program=" + Executable, "enable=yes" };
-        if (!Netsh(new[] { "advfirewall", "firewall", "set", "rule", name, "new" }.Concat(settings).ToArray()) &&
-            !Netsh(new[] { "advfirewall", "firewall", "add", "rule", name }.Concat(settings).ToArray()))
-            throw new IOException("Windows firewall update failed.");
+        setup.Apply(Executable, Netsh);
     }
 }

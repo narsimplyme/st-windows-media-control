@@ -11,7 +11,7 @@ AgentConfig config;
 var firstRun = false;
 try
 {
-    if (args.Contains("--configure-firewall")) { FirstRun.ConfigureFirewall(configPath); return; }
+    if (args.Contains("--configure-firewall")) { FirstRun.ConfigureFirewall(args); return; }
     if (args.Contains("--init")) { AgentConfig.Create(configPath); return; }
     if (args.Contains("--rotate-token")) { AgentConfig.RotateToken(configPath); return; }
     if (args.Contains("--enable-https")) { TlsIdentity.Enable(configPath); return; }

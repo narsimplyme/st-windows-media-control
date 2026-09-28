@@ -42,7 +42,10 @@ public sealed record AgentConfig(string DeviceId, string Token, string BindAddre
     {
         var previous = Load(path);
         var next = Validate(previous with { DeviceId = Guid.NewGuid().ToString(), Token = NewToken(),
-            FirewallRuleId = previous.FirewallRuleId ?? previous.DeviceId });
+            FirewallRuleId = previous.FirewallRuleId ?? previous.DeviceId,
+            // Explicit reset permits a new LAN hub to enroll using a fresh code.
+            // Legacy plaintext configurations cannot safely enroll unknown peers.
+            HubAddress = previous.TlsEnabled ? "" : previous.HubAddress });
         ReplacePrivate(path, next);
         return next;
     }
