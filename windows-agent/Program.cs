@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -88,7 +88,7 @@ if (!args.Contains("--no-tray"))
         sp.GetRequiredService<IHostApplicationLifetime>(), sp.GetRequiredService<ILogger<TrayService>>(),
         regenerate: () => replacement = AgentConfig.RegenerateIdentity(configPath), showPairing: showPairing, session: pairingSession,
         startup: new StartupSettings(FirstRun.Executable, configPath),
-        certificate: tlsIdentity?.ExportCertificatePem(), configureFirewall: () => FirstRun.RequestFirewall(configPath), apps: apps));
+        certificate: tlsIdentity?.ExportCertificatePem(), configureFirewall: () => FirstRun.RequestFirewall(configPath), apps: apps, uninstall: () => Uninstaller.Launch(configPath)));
 var app = builder.Build();
 // AgentConfig enforces the 32-hex-character contract. Compare the complete
 // credential in constant time; never truncate or normalize a supplied token.

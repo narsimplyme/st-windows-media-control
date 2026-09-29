@@ -90,3 +90,20 @@ The smoke test uses temporary configuration and a loopback listener. Native audi
 MIT licensed. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 Developed using OpenAI Codex.
+
+### Uninstall
+
+Right-click the PC tray icon and choose **Uninstall…**. Confirm removal and approve
+Windows administrator access to remove this installation's firewall rule. Canceling
+administrator approval leaves application files and startup settings intact.
+
+The uninstaller removes `%LOCALAPPDATA%\STMediaBridge` (installed binaries,
+configuration, pairing credentials, certificates, app selections and logs), its
+startup entries and legacy scheduled task, and the default .NET extraction cache
+for `STMediaBridge.Agent`. Close any other copies of the companion first. If cleanup
+fails, the dialog reports the error; rerun the uninstaller to remove remaining files.
+The repository's `windows-agent/scripts/Uninstall.ps1` also performs this cleanup.
+
+Delete the original downloaded EXE and the SmartThings device separately. Custom
+`--config` installations and custom .NET extraction directories require manual
+cleanup. Linked directories are refused to prevent deleting unrelated files.

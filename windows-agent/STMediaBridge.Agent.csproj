@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.2.0</FileVersion>
+    <FileVersion>1.0.3.0</FileVersion>
     <Product>ST Windows Media Control</Product>
     <AssemblyTitle>ST Windows Media Control</AssemblyTitle>
     <Description>Control Windows media playback and system volume from SmartThings.</Description>
@@ -20,6 +20,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <EmbeddedResource Include="scripts/Uninstall.ps1" LogicalName="STMediaBridge.Uninstall" />
     <EmbeddedResource Include="../THIRD_PARTY_NOTICES.md" LogicalName="STMediaBridge.ThirdPartyNotices" />
   </ItemGroup>
 </Project>

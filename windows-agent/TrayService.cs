@@ -1,4 +1,4 @@
-using System.Drawing.Drawing2D;
+﻿using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Hosting;
@@ -9,7 +9,7 @@ namespace STMediaBridge;
 // WinForms owns a separate STA thread; native media observers and HTTP remain
 // on the host's background threads. The icon appears only after the server starts.
 public sealed class TrayService(AgentConfig config, StateStore state,
-    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null) : IHostedService, IDisposable
+    IHostApplicationLifetime lifetime, ILogger<TrayService> log, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null, Action? uninstall = null) : IHostedService, IDisposable
 {
     private static int uiInitialized;
     private readonly object gate = new();
@@ -42,7 +42,7 @@ public sealed class TrayService(AgentConfig config, StateStore state,
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
             }
-            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup, certificate, configureFirewall, apps);
+            using var context = new TrayContext(config, state, lifetime, regenerate, showPairing, session, startup, certificate, configureFirewall, apps, uninstall);
             log.LogInformation("Tray icon ready");
             using var registration = stopping.Token.Register(context.RequestClose);
             if (!stopping.IsCancellationRequested) Application.Run(context);
@@ -77,7 +77,7 @@ internal sealed class TrayContext : ApplicationContext
     internal static string T(string korean, string english) =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? korean : english;
 
-    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null)
+    public TrayContext(AgentConfig config, StateStore state, IHostApplicationLifetime lifetime, Func<AgentConfig>? regenerate = null, bool showPairing = false, PairingSession? session = null, IStartupSettings? startup = null, string? certificate = null, Action? configureFirewall = null, AppCatalog? apps = null, Action? uninstall = null)
     {
         this.certificate = certificate;
         session ??= new PairingSession();
@@ -155,6 +155,11 @@ internal sealed class TrayContext : ApplicationContext
             using var reader = new StreamReader(stream);
             using var licenses = new LicenseForm(reader.ReadToEnd());
             licenses.ShowDialog();
+        });
+        if (uninstall is not null) menu.Items.Add(T("프로그램 제거…", "Uninstall…"), null, (_, _) =>
+        {
+            try { uninstall(); }
+            catch (Exception ex) { MessageBox.Show(ex.Message, ProductInfo.DisplayName, MessageBoxButtons.OK, MessageBoxIcon.Error); }
         });
         var exit = menu.Items.Add(T(ProductInfo.DisplayName + " 종료", "Exit " + ProductInfo.DisplayName));
         exit.Click += (_, _) =>
